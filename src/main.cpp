@@ -75,10 +75,17 @@ bool ReadInputData(const std::string& fileName, std::vector<Slice>& data)
 	return true;
 }
 
+double ComputeSampleTime(const std::vector<Slice>& data)
+{
+	// Assume equally spaced time steps
+	return data.back().time / (data.size() - 1);
+}
+
 class ResponseModeller
 {
 public:
-	ResponseModeller(const std::vector<Slice>& data) : data(data) {}
+	ResponseModeller(const std::vector<Slice>& data, const double& sampleTime)
+		: data(data), sampleTime(sampleTime) {}
 
 	double ComputeModelError(const Eigen::VectorXd& parameters)
 	{
@@ -92,6 +99,7 @@ public:
 
 private:
 	const std::vector<Slice>& data;
+	const double sampleTime;
 
 	std::vector<double> modelledResponse;
 	void ComputeModelledResponse(const double& bandwidthFrequency,
@@ -110,31 +118,24 @@ private:
 				- b1 * data[i - 1].response - b2 * data[i - 2].response;
 	}
 
-	double ComputeSampleTime()
-	{
-		// Assume equally spaced time steps
-		return data.back().time / (data.size() - 1);
-	}
-
 	void ComputeCoefficients(const double& bandwidthFrequency,
 		const double& dampingRatio, double& a, double& b1, double& b2)
 	{
-		const double timeStep(ComputeSampleTime());
-		// TODO:  Return timeStep
-		std::cout << "T = " << timeStep << std::endl;
-		const double denominator(4 + 4 * dampingRatio * bandwidthFrequency * timeStep
-			+ bandwidthFrequency * bandwidthFrequency * timeStep * timeStep);
-		a = (bandwidthFrequency * bandwidthFrequency * timeStep * timeStep) / denominator;
-		b1 = (2 * bandwidthFrequency * bandwidthFrequency * timeStep * timeStep - 8) / denominator;
-		b2 = (4 - 4 * dampingRatio * bandwidthFrequency * timeStep
-			+ bandwidthFrequency * bandwidthFrequency * timeStep * timeStep) / denominator;
+		const double denominator(4 + 4 * dampingRatio * bandwidthFrequency * sampleTime
+			+ bandwidthFrequency * bandwidthFrequency * sampleTime * sampleTime);
+		a = (bandwidthFrequency * bandwidthFrequency * sampleTime * sampleTime) / denominator;
+		b1 = (2 * bandwidthFrequency * bandwidthFrequency * sampleTime * sampleTime - 8) / denominator;
+		b2 = (4 - 4 * dampingRatio * bandwidthFrequency * sampleTime
+			+ bandwidthFrequency * bandwidthFrequency * sampleTime * sampleTime) / denominator;
 	}
 };
 
 void DetermineParameters(const std::vector<Slice>& data,
-	double& bandwidthFrequency, double& dampingRatio)
+	double& bandwidthFrequency, double& dampingRatio, double& sampleTime)
 {
-	ResponseModeller modeller(data);
+	sampleTime = ComputeSampleTime(data);
+
+	ResponseModeller modeller(data, sampleTime);
 	auto objectiveFunction = std::bind(&ResponseModeller::ComputeModelError, modeller, std::placeholders::_1);
 	NelderMead<2> optimization(objectiveFunction, 1000);
 	Eigen::VectorXd initialGuess(2);
@@ -163,8 +164,9 @@ int main(int argc, char *argv[])
 	if (!ReadInputData(argv[1], data))
 		return 1;
 
-	double bandwidthFrequency, dampingRatio;
-	DetermineParameters(data, bandwidthFrequency, dampingRatio);
+	double bandwidthFrequency, dampingRatio, sampleTime;
+	DetermineParameters(data, bandwidthFrequency, dampingRatio, sampleTime);
+	std::cout << "Sample time = " << sampleTime << std::endl;
 	std::cout << "Bandwidth frequency = " << bandwidthFrequency / 2.0 / M_PI << std::endl;
 	std::cout << "Damping ratio = " << dampingRatio << std::endl;
 
