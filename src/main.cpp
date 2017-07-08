@@ -82,11 +82,49 @@ public:
 
 	double ComputeModelError(const Eigen::VectorXd& parameters)
 	{
-		return 0.0;
+		ComputeModelledResponse(parameters(0), parameters(1));
+		double error(0.0);
+		unsigned int i;
+		for (i = 0; i < data.size(); ++i)
+			error += fabs(data[i].response - modelledResponse[i]);
+		return error;
 	}
 
 private:
 	const std::vector<Slice>& data;
+
+	std::vector<double> modelledResponse;
+	void ComputeModelledResponse(const double& bandwidthFrequency,
+		const double& dampingRatio)
+	{
+		modelledResponse.resize(data.size());
+		double a, b1, b2;
+		ComputeCoefficients(bandwidthFrequency, dampingRatio, a, b1, b2);
+
+		modelledResponse[0] = data[0].response;
+		modelledResponse[1] = data[1].response;
+
+		unsigned int i;
+		for (i = 2; i < data.size(); ++i)
+			modelledResponse[i] = a * (data[i].input + 2 * data[i - 1].input + data[i - 2].input)
+				- b1 * data[i - 1].response - b2 * data[i - 2].response;
+	}
+
+	double ComputeSampleTime()
+	{
+		// Assume equally spaced time steps
+		return data.back().time / (data.size() - 1);
+	}
+
+	void ComputeCoefficients(const double& bandwidthFrequency,
+		const double& dampingRatio, double& a, double& b1, double& b2)
+	{
+		const double timeStep(ComputeSampleTime());
+		const double denominator();
+		a =  / denominator;
+		b1 =  / denominator;
+		b2 =  / denominator;
+	}
 };
 
 void DetermineParameters(const std::vector<Slice>& data,
