@@ -120,10 +120,14 @@ private:
 		const double& dampingRatio, double& a, double& b1, double& b2)
 	{
 		const double timeStep(ComputeSampleTime());
-		const double denominator();
-		a =  / denominator;
-		b1 =  / denominator;
-		b2 =  / denominator;
+		// TODO:  Return timeStep
+		std::cout << "T = " << timeStep << std::endl;
+		const double denominator(4 + 4 * dampingRatio * bandwidthFrequency * timeStep
+			+ bandwidthFrequency * bandwidthFrequency * timeStep * timeStep);
+		a = (bandwidthFrequency * bandwidthFrequency * timeStep * timeStep) / denominator;
+		b1 = (2 * bandwidthFrequency * bandwidthFrequency * timeStep * timeStep - 8) / denominator;
+		b2 = (4 - 4 * dampingRatio * bandwidthFrequency * timeStep
+			+ bandwidthFrequency * bandwidthFrequency * timeStep * timeStep) / denominator;
 	}
 };
 
