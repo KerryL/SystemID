@@ -147,7 +147,40 @@ void DetermineParameters(const std::vector<Slice>& data,
 	bandwidthFrequency = parameters(0);
 	dampingRatio = parameters(1);
 
-	std::cout << "Optimization complete after " << optimization.GetIterationCount() << std::endl;
+	std::cout << "Optimization complete after " << optimization.GetIterationCount() << " iterations" <<  std::endl;
+}
+
+void Unwind(std::vector<Slice>& data, const double& rollover)
+{
+	unsigned int i;
+	for (i = 1; i < data.size(); ++i)
+	{
+		if (fabs(data[i].input - rollover - data[i - 1].input) < fabs(data[i].input - data[i - 1].input))
+		{
+			unsigned int j;
+			for (j = i; j < data.size(); ++j)
+				data[j].input -= rollover;
+		}
+		else if (fabs(data[i].input + rollover - data[i - 1].input) < fabs(data[i].input - data[i - 1].input))
+		{
+			unsigned int j;
+			for (j = i; j < data.size(); ++j)
+				data[j].input += rollover;
+		}
+
+		if (fabs(data[i].response - rollover - data[i - 1].response) < fabs(data[i].response - data[i - 1].response))
+		{
+			unsigned int j;
+			for (j = i; j < data.size(); ++j)
+				data[j].response -= rollover;
+		}
+		else if (fabs(data[i].response + rollover - data[i - 1].response) < fabs(data[i].response - data[i - 1].response))
+		{
+			unsigned int j;
+			for (j = i; j < data.size(); ++j)
+				data[j].response += rollover;
+		}
+	}
 }
 
 int main(int argc, char *argv[])
@@ -163,6 +196,8 @@ int main(int argc, char *argv[])
 	std::vector<Slice> data;
 	if (!ReadInputData(argv[1], data))
 		return 1;
+
+	Unwind(data, 360.0);// TODO:  Make rollover point an optional argument
 
 	double bandwidthFrequency, dampingRatio, sampleTime;
 	DetermineParameters(data, bandwidthFrequency, dampingRatio, sampleTime);
