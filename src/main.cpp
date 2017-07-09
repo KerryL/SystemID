@@ -78,7 +78,7 @@ bool ReadInputData(const std::string& fileName, std::vector<Slice>& data)
 double ComputeSampleTime(const std::vector<Slice>& data)
 {
 	// Assume equally spaced time steps
-	return data.back().time / (data.size() - 1);
+	return (data.back().time - data.front().time) / (data.size() - 1);
 }
 
 class ResponseModeller
