@@ -18,7 +18,7 @@ struct Slice
 	Slice(const double& time, const double& input, const double& response)
 		: time(time), input(input), response(response) {}
 
-	double time;
+	double time;// [sec]
 	double input;
 	double response;
 };
@@ -189,7 +189,7 @@ int main(int argc, char *argv[])
 	{
 		std::cout << "Usage:  " << argv[0] << " <input file>\n"
 			<< "    Input file must be formatted into three columns separated by ',':\n"
-			<< "    Time, Input, Response\n" << std::endl;
+			<< "    Time (must be in seconds), Input, Response\n" << std::endl;
 		return 1;
 	}
 
@@ -201,8 +201,8 @@ int main(int argc, char *argv[])
 
 	double bandwidthFrequency, dampingRatio, sampleTime;
 	DetermineParameters(data, bandwidthFrequency, dampingRatio, sampleTime);
-	std::cout << "Sample time = " << sampleTime << std::endl;
-	std::cout << "Bandwidth frequency = " << bandwidthFrequency / 2.0 / M_PI << std::endl;
+	std::cout << "Sample time = " << sampleTime << " sec" << std::endl;
+	std::cout << "Bandwidth frequency = " << bandwidthFrequency / 2.0 / M_PI << " Hz" << std::endl;
 	std::cout << "Damping ratio = " << dampingRatio << std::endl;
 
 	return 0;
