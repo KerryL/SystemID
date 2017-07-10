@@ -23,7 +23,7 @@ double ResponseModeller::ComputeModelError(const Eigen::VectorXd& parameters)
 	{
 		double error(fabs(data[i].response - modelledResponse[i]));
 		if (rolloverPoint > 0.0)
-			error = Unwind(error);
+			error = fabs(Unwind(error));
 
 		totalError += error;
 		if (error > maximumError)
