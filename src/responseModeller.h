@@ -46,7 +46,7 @@ private:
 	void ComputeCoefficients(const double& bandwidthFrequency,
 		double& a, double& b);
 
-	double Unwind(const double& value) const;
+	double RolloverRangeAdjust(const double& value) const;
 };
 
 #endif// RESPONSE_MODELLER_H_

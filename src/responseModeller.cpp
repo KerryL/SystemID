@@ -23,7 +23,7 @@ double ResponseModeller::ComputeModelError(const Eigen::VectorXd& parameters)
 	{
 		double error(fabs(data[i].response - modelledResponse[i]));
 		if (rolloverPoint > 0.0)
-			error = fabs(Unwind(error));
+			error = fabs(RolloverRangeAdjust(error));
 
 		totalError += error;
 		if (error > maximumError)
@@ -46,7 +46,7 @@ void ResponseModeller::ComputeModelledResponse(const double& bandwidthFrequency,
 	unsigned int i;
 	for (i = 2; i < data.size(); ++i)
 		modelledResponse[i] = a * (data[i].input + 2 * data[i - 1].input + data[i - 2].input)
-			- b1 * data[i - 1].response - b2 * data[i - 2].response;
+			- b1 * modelledResponse[i - 1] - b2 * modelledResponse[i - 2];
 }
 
 void ResponseModeller::ComputeModelledResponse(const double& bandwidthFrequency)
@@ -59,7 +59,7 @@ void ResponseModeller::ComputeModelledResponse(const double& bandwidthFrequency)
 
 	unsigned int i;
 	for (i = 1; i < data.size(); ++i)
-		modelledResponse[i] = a * (data[i].input + data[i - 1].input) - b * data[i - 1].response;
+		modelledResponse[i] = a * (data[i].input + data[i - 1].input) - b * modelledResponse[i - 1];
 }
 
 void ResponseModeller::ComputeCoefficients(const double& bandwidthFrequency,
@@ -81,11 +81,11 @@ void ResponseModeller::ComputeCoefficients(const double& bandwidthFrequency,
 	b = (bandwidthFrequency * sampleTime - 2.0) / denominator;
 }
 
-double ResponseModeller::Unwind(const double& value) const
+double ResponseModeller::RolloverRangeAdjust(const double& value) const
 {
 	assert(rolloverPoint > 0.0);
 	assert(value >= 0.0);
 
-	const unsigned int rolloverCount(value / rolloverPoint);
+	const int rolloverCount(value / rolloverPoint);
 	return value - rolloverCount * rolloverPoint;
 }
