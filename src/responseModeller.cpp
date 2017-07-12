@@ -86,6 +86,6 @@ double ResponseModeller::RolloverRangeAdjust(const double& value) const
 	assert(rolloverPoint > 0.0);
 	assert(value >= 0.0);
 
-	const int rolloverCount(value / rolloverPoint);
+	const int rolloverCount(static_cast<int>(value / rolloverPoint));
 	return value - rolloverCount * rolloverPoint;
 }
