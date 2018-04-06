@@ -71,7 +71,7 @@ void ResponseModeller::ComputeModelledResponse(const double& bandwidthFrequency)
 		modelledResponse[i][0] = data[i][0].response;
 
 		unsigned int j;
-		for (j = 1; j < data.size(); ++j)
+		for (j = 1; j < data[i].size(); ++j)
 			modelledResponse[i][j] = a * (data[i][j].input + data[i][j - 1].input) - b * modelledResponse[i][j - 1];
 	}
 }
