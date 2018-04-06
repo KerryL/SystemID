@@ -25,17 +25,17 @@ public:
 		double response;
 	};
 
-	bool DetermineParameters(const std::vector<Slice>& data,
+	bool DetermineParameters(const std::vector<std::vector<Slice>>& data,
 		double& bandwidthFrequency, double& sampleTime);
 
-	bool DetermineParameters(const std::vector<Slice>& data,
+	bool DetermineParameters(const std::vector<std::vector<Slice>>& data,
 		double& bandwidthFrequency, double& dampingRatio, double& sampleTime);
 
 	unsigned int GetIterationCount() const { return iterationCount; }
 	double GetMaximumError() const { return maximumError; }
 
 private:
-	static double ComputeSampleTime(const std::vector<Slice>& data);
+	static double ComputeSampleTime(const std::vector<std::vector<Slice>>& data);
 
 	const unsigned int iterationLimit;
 	const double rolloverPoint;

@@ -19,7 +19,7 @@ bool ParseValue(const std::string& token, double& value)
 	return !(ss >> value).fail();
 }
 
-bool ReadInputData(const std::string& fileName, std::vector<ModelFitter::Slice>& data,
+bool ReadInputDataFile(const std::string& fileName, std::vector<ModelFitter::Slice>& data,
 	const int& commandColumn, const int& responseColumn)
 {
 	std::ifstream inFile(fileName.c_str());
@@ -83,6 +83,20 @@ bool ReadInputData(const std::string& fileName, std::vector<ModelFitter::Slice>&
 	return true;
 }
 
+bool ReadInputData(const std::vector<std::string>& fileName, std::vector<std::vector<ModelFitter::Slice>>& data,
+	const int& commandColumn, const int& responseColumn)
+{
+	unsigned int i(0);
+	for (const auto& f : fileName)
+	{
+		if (!ReadInputDataFile(f, data[i], commandColumn, responseColumn))
+			return false;
+		++i;
+	}
+
+	return true;
+}
+
 void Unwind(std::vector<ModelFitter::Slice>& data, const double& rollover)
 {
 	unsigned int i;
@@ -118,11 +132,12 @@ void Unwind(std::vector<ModelFitter::Slice>& data, const double& rollover)
 
 void PrintUsage(const std::string& appName)
 {
-	std::cout << "Usage:  " << appName << " [--rollover <rolloverPoint>] [--inCol <index> --rspCol <index>] <input file>\n"
-		<< "    Input file must be formatted into three columns separated by ',':\n"
+	std::cout << "Usage:  " << appName << " [--rollover <rolloverPoint>] [--inCol <index> --rspCol <index>] <first input file> ...\n"
+		<< "    Input files must be formatted into three columns separated by ',':\n"
 		<< "    Time (must be in seconds), Input, Response\n"
-		<< "    If data file is not in this format or has more than three columns,\n"
-		<< "    --inCol and --rspCol argumetns must also be provided.\n"
+		<< "    If data files are not in this format or have more than three columns,\n"
+		<< "    --inCol and --rspCol argumetns must also be provided.  All input files\n"
+		<< "    must be in the same format.\n"
 		<< "    If rollover argument is omitted, no rollover correction is performed." << std::endl;
 }
 
@@ -168,20 +183,18 @@ bool ProcessColumnArgument(const std::string& arg, int& column)
 }
 
 bool ProcessArguments(const std::vector<std::string>& args,
-	std::string& inputFileName, double& rolloverPoint, int& commandColumn, int& responseColumn)
+	std::vector<std::string>& inputFileNames, double& rolloverPoint, int& commandColumn, int& responseColumn)
 {
 	rolloverPoint = 0.0;
 	commandColumn = 1;
 	responseColumn = 2;
 
-	inputFileName = args.back();// Always the last argument
-	if (args.size() == 2)
-		return true;
-
 	unsigned int argIndex;
-	for (argIndex = 1; argIndex < args.size() - 1; argIndex += 2)
+	for (argIndex = 1; argIndex < args.size(); ++argIndex)
 	{
-		if (argIndex == args.size() - 2)
+		if (args[argIndex].substr(0, 2).compare("--") == 0 &&
+			(argIndex == args.size() - 2 ||// Shouldn't have non-file-name argument identifier as second-to-last argument
+			!inputFileNames.empty()))// After we start adding file names, don't allow non-file-name arguments
 		{
 			std::cerr << "Unexpected input arguments\n";
 			PrintUsage(args.front());
@@ -192,51 +205,58 @@ bool ProcessArguments(const std::vector<std::string>& args,
 		{
 			if (!ProcessRolloverArgument(args[argIndex + 1], rolloverPoint))
 				return false;
+			++argIndex;
 		}
 		else if (args[argIndex].compare("--inCol") == 0)
 		{
 			if (!ProcessColumnArgument(args[argIndex + 1], commandColumn))
 				return false;
+			++argIndex;
 		}
 		else if (args[argIndex].compare("--rspCol") == 0)
 		{
 			if (!ProcessColumnArgument(args[argIndex + 1], responseColumn))
 				return false;
+			++argIndex;
 		}
 		else
-		{
-			std::cerr << "Unexpected argument '" << args[argIndex] << "'\n";
-			PrintUsage(args.front());
-			return false;
-		}
+			inputFileNames.push_back(args[argIndex]);
 	}
 
-	return true;
+	return !inputFileNames.empty();
 }
 
 int main(int argc, char *argv[])
 {
-	std::string inputFileName;
+	std::vector<std::string> inputFileNames;
 	double rolloverPoint;
 	int inputColumn;
 	int responseColumn;
 
 	std::vector<std::string> args(argv, argv + argc);
-	if (!ProcessArguments(args, inputFileName, rolloverPoint, inputColumn, responseColumn))
+	if (!ProcessArguments(args, inputFileNames, rolloverPoint, inputColumn, responseColumn))
 		return 1;
 
-	std::vector<ModelFitter::Slice> data;
-	if (!ReadInputData(inputFileName, data, inputColumn, responseColumn))
+	std::vector<std::vector<ModelFitter::Slice>> data(inputFileNames.size());
+	if (!ReadInputData(inputFileNames, data, inputColumn, responseColumn))
 		return 1;
 
-	std::cout << "Found " << data.size() << " records in " << inputFileName << std::endl;
+	const unsigned int recordCount([&data]()
+	{
+		unsigned int total(0);
+		for (const auto& d : data)
+			total += d.size();
+		return total;
+	}());
+	std::cout << "Found " << recordCount << " records in " << inputFileNames.size() << " files" << std::endl;
 
 	const unsigned int iterationLimit(1000);
 	ModelFitter fitter(iterationLimit, rolloverPoint);
 	if (rolloverPoint > 0.0)
 	{
 		std::cout << "Unwinding data at " << rolloverPoint << std::endl;
-		Unwind(data, rolloverPoint);
+		for (auto& d : data)
+			Unwind(d, rolloverPoint);
 	}
 
 	double bandwidthFrequency, sampleTime;

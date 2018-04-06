@@ -8,7 +8,7 @@
 #include "nelderMead.h"
 #include "responseModeller.h"
 
-bool ModelFitter::DetermineParameters(const std::vector<Slice>& data,
+bool ModelFitter::DetermineParameters(const std::vector<std::vector<Slice>>& data,
 	double& bandwidthFrequency, double& sampleTime)
 {
 	sampleTime = ComputeSampleTime(data);
@@ -29,7 +29,7 @@ bool ModelFitter::DetermineParameters(const std::vector<Slice>& data,
 	return iterationCount < iterationLimit;
 }
 
-bool ModelFitter::DetermineParameters(const std::vector<Slice>& data,
+bool ModelFitter::DetermineParameters(const std::vector<std::vector<Slice>>& data,
 	double& bandwidthFrequency, double& dampingRatio, double& sampleTime)
 {
 	sampleTime = ComputeSampleTime(data);
@@ -50,8 +50,12 @@ bool ModelFitter::DetermineParameters(const std::vector<Slice>& data,
 	return iterationCount < iterationLimit;
 }
 
-double ModelFitter::ComputeSampleTime(const std::vector<Slice>& data)
+double ModelFitter::ComputeSampleTime(const std::vector<std::vector<Slice>>& data)
 {
-	// Assume equally spaced time steps
-	return (data.back().time - data.front().time) / (data.size() - 1);
+	std::vector<double> sampleTimes(data.size());
+	unsigned int i;
+	for (i = 0; i < data.size(); ++i)
+		sampleTimes[i] = (data[i].back().time - data[i].front().time) / (data[i].size() - 1);
+
+	return std::accumulate(sampleTimes.begin(), sampleTimes.end(), 0.0) / sampleTimes.size();
 }

@@ -21,13 +21,17 @@ double ResponseModeller::ComputeModelError(const Eigen::VectorXd& parameters)
 	unsigned int i;
 	for (i = 0; i < data.size(); ++i)
 	{
-		double error(fabs(data[i].response - modelledResponse[i]));
-		if (rolloverPoint > 0.0)
-			error = fabs(RolloverRangeAdjust(error));
+		unsigned int j;
+		for (j = 0; j < data[i].size(); ++j)
+		{
+			double error(fabs(data[i][j].response - modelledResponse[i][j]));
+			if (rolloverPoint > 0.0)
+				error = fabs(RolloverRangeAdjust(error));
 
-		totalError += error;
-		if (error > maximumError)
-			maximumError = error;
+			totalError += error;
+			if (error > maximumError)
+				maximumError = error;
+		}
 	}
 
 	return totalError;
@@ -40,13 +44,18 @@ void ResponseModeller::ComputeModelledResponse(const double& bandwidthFrequency,
 	double a, b1, b2;
 	ComputeCoefficients(bandwidthFrequency, dampingRatio, a, b1, b2);
 
-	modelledResponse[0] = data[0].response;
-	modelledResponse[1] = data[1].response;
-
 	unsigned int i;
-	for (i = 2; i < data.size(); ++i)
-		modelledResponse[i] = a * (data[i].input + 2 * data[i - 1].input + data[i - 2].input)
-			- b1 * modelledResponse[i - 1] - b2 * modelledResponse[i - 2];
+	for (i = 0; i < modelledResponse.size(); ++i)
+	{
+		modelledResponse[i].resize(data[i].size());
+		modelledResponse[i][0] = data[i][0].response;
+		modelledResponse[i][1] = data[i][1].response;
+
+		unsigned int j;
+		for (j = 2; j < data[i].size(); ++j)
+			modelledResponse[i][j] = a * (data[i][j].input + 2 * data[i][j - 1].input + data[i][j - 2].input)
+				- b1 * modelledResponse[i][j - 1] - b2 * modelledResponse[i][j - 2];
+	}
 }
 
 void ResponseModeller::ComputeModelledResponse(const double& bandwidthFrequency)
@@ -55,11 +64,16 @@ void ResponseModeller::ComputeModelledResponse(const double& bandwidthFrequency)
 	double a, b;
 	ComputeCoefficients(bandwidthFrequency, a, b);
 
-	modelledResponse[0] = data[0].response;
-
 	unsigned int i;
-	for (i = 1; i < data.size(); ++i)
-		modelledResponse[i] = a * (data[i].input + data[i - 1].input) - b * modelledResponse[i - 1];
+	for (i = 0; i < modelledResponse.size(); ++i)
+	{
+		modelledResponse[i].resize(data[i].size());
+		modelledResponse[i][0] = data[i][0].response;
+
+		unsigned int j;
+		for (j = 1; j < data.size(); ++j)
+			modelledResponse[i][j] = a * (data[i][j].input + data[i][j - 1].input) - b * modelledResponse[i][j - 1];
+	}
 }
 
 void ResponseModeller::ComputeCoefficients(const double& bandwidthFrequency,
@@ -86,6 +100,6 @@ double ResponseModeller::RolloverRangeAdjust(const double& value) const
 	assert(rolloverPoint > 0.0);
 	assert(value >= 0.0);
 
-	const int rolloverCount(static_cast<int>(value / rolloverPoint));
+	const int rolloverCount(static_cast<int>(value / rolloverPoint + 0.5));
 	return value - rolloverCount * rolloverPoint;
 }

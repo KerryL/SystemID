@@ -21,7 +21,7 @@ public:
 		SecondOrder
 	};
 
-	ResponseModeller(const std::vector<ModelFitter::Slice>& data,
+	ResponseModeller(const std::vector<std::vector<ModelFitter::Slice>>& data,
 		const double& sampleTime, const double& rolloverPoint, const ModelType& modelType)
 		: data(data), sampleTime(sampleTime), rolloverPoint(rolloverPoint), modelType(modelType) {}
 
@@ -29,13 +29,13 @@ public:
 	double GetMaximumError() const { return maximumError; }
 
 private:
-	const std::vector<ModelFitter::Slice>& data;
+	const std::vector<std::vector<ModelFitter::Slice>>& data;
 	const double sampleTime;
 	const double rolloverPoint;
 	ModelType modelType;
 	double maximumError = 0.0;
 
-	std::vector<double> modelledResponse;
+	std::vector<std::vector<double>> modelledResponse;
 
 	void ComputeModelledResponse(const double& bandwidthFrequency,
 		const double& dampingRatio);

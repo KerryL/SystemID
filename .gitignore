@@ -4,6 +4,7 @@ Release/
 ipch/
 *.opendb
 *.db
+*.user
 
 *.suo
 *.sdf
