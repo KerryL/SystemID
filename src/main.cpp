@@ -13,7 +13,14 @@
 #include <string>
 #include <cmath>
 
-bool ReadInputData(const std::string& fileName, std::vector<ModelFitter::Slice>& data)
+bool ParseValue(const std::string& token, double& value)
+{
+	std::istringstream ss(token);
+	return !(ss >> value).fail();
+}
+
+bool ReadInputData(const std::string& fileName, std::vector<ModelFitter::Slice>& data,
+	const int& commandColumn, const int& responseColumn)
 {
 	std::ifstream inFile(fileName.c_str());
 	if (!inFile.is_open() || !inFile.good())
@@ -28,34 +35,45 @@ bool ReadInputData(const std::string& fileName, std::vector<ModelFitter::Slice>&
 	unsigned int lineCount(2);
 	while (std::getline(inFile, line))
 	{
-		std::istringstream ss(line), tokenStream;
+		std::istringstream ss(line);
 		std::string token;
 		double time, input, response;
 
-		std::getline(ss, token, ',');
-		tokenStream.str(token);
-		if ((tokenStream >> time).fail())
+		int column(0), assignedDataCount(0);
+		while (std::getline(ss, token, ','))
 		{
-			std::cerr << "Failed to parse time at row " << lineCount << std::endl;
-			return false;
-		}
+			if (column == 0)
+			{
+				if (!ParseValue(token, time))
+				{
+					std::cerr << "Failed to parse time at row " << lineCount << std::endl;
+					return false;
+				}
+				++assignedDataCount;
+			}
+			else if (column == commandColumn)
+			{
+				if (!ParseValue(token, input))
+				{
+					std::cerr << "Failed to parse input at row " << lineCount << std::endl;
+					return false;
+				}
+				++assignedDataCount;
+			}
+			else if (column == responseColumn)
+			{
+				if (!ParseValue(token, response))
+				{
+					std::cerr << "Failed to parse response at row " << lineCount << std::endl;
+					return false;
+				}
+				++assignedDataCount;
+			}
 
-		std::getline(ss, token, ',');
-		tokenStream.clear();
-		tokenStream.str(token);
-		if ((tokenStream >> input).fail())
-		{
-			std::cerr << "Failed to parse input at row " << lineCount << std::endl;
-			return false;
-		}
+			if (assignedDataCount == 3)
+				break;
 
-		std::getline(ss, token, ',');
-		tokenStream.clear();
-		tokenStream.str(token);
-		if ((tokenStream >> response).fail())
-		{
-			std::cerr << "Failed to parse response at row " << lineCount << std::endl;
-			return false;
+			++column;
 		}
 
 		data.push_back(ModelFitter::Slice(time, input, response));
@@ -98,34 +116,97 @@ void Unwind(std::vector<ModelFitter::Slice>& data, const double& rollover)
 	}
 }
 
-bool ProcessArguments(const std::vector<std::string>& args,
-	std::string& inputFileName, double& rolloverPoint)
+void PrintUsage(const std::string& appName)
 {
-	if ((args.size() != 2 && args.size() != 4) ||
-		(args.size() == 4 && args[1].compare("--rollover") != 0))
+	std::cout << "Usage:  " << appName << " [--rollover <rolloverPoint>] [--inCol <index> --rspCol <index>] <input file>\n"
+		<< "    Input file must be formatted into three columns separated by ',':\n"
+		<< "    Time (must be in seconds), Input, Response\n"
+		<< "    If data file is not in this format or has more than three columns,\n"
+		<< "    --inCol and --rspCol argumetns must also be provided.\n"
+		<< "    If rollover argument is omitted, no rollover correction is performed." << std::endl;
+}
+
+bool ProcessRolloverArgument(const std::string& arg, double& rollover)
+{
+	std::istringstream ss(arg);
+	if ((ss >> rollover).fail())
 	{
-		std::cout << "Usage:  " << args.front() << " [--rollover <rolloverPoint>] <input file>\n"
-			<< "    Input file must be formatted into three columns separated by ',':\n"
-			<< "    Time (must be in seconds), Input, Response\n"
-			<< "    If rollover argument is omitted, no rollover correction is performed." << std::endl;
+		std::cerr << "Invalid rollover specification:  '" << arg << "'\n";
 		return false;
 	}
 
-	inputFileName = args.back();// Always the last argument
-
-	rolloverPoint = 0.0;
-	if (args.size() == 4)
+	if (rollover < 0.0)
 	{
-		std::istringstream ss(args[2]);
-		if ((ss >> rolloverPoint).fail())
+		std::cerr << "Rollover point must be positive\n";
+		return false;
+	}
+
+	return true;
+}
+
+bool ProcessColumnArgument(const std::string& arg, int& column)
+{
+	std::istringstream ss(arg);
+	if ((ss >> column).fail())
+	{
+		std::cerr << "Invalid column specification:  '" << arg << "'\n";
+		return false;
+	}
+
+	if (column == 0)
+	{
+		std::cerr << "Column specification must be strictly positive (zero is reserved for time data)\n";
+		return false;
+	}
+	else if (column < 0)
+	{
+		std::cerr << "Column specification must be strictly positive\n";
+		return false;
+	}
+
+	return true;
+}
+
+bool ProcessArguments(const std::vector<std::string>& args,
+	std::string& inputFileName, double& rolloverPoint, int& commandColumn, int& responseColumn)
+{
+	rolloverPoint = 0.0;
+	commandColumn = 1;
+	responseColumn = 2;
+
+	inputFileName = args.back();// Always the last argument
+	if (args.size() == 2)
+		return true;
+
+	unsigned int argIndex;
+	for (argIndex = 1; argIndex < args.size() - 1; argIndex += 2)
+	{
+		if (argIndex == args.size() - 2)
 		{
-			std::cerr << "Invalid rollover specification:  '" << args[2] << "'\n";
+			std::cerr << "Unexpected input arguments\n";
+			PrintUsage(args.front());
 			return false;
 		}
 
-		if (rolloverPoint < 0.0)
+		if (args[argIndex].compare("--rollover") == 0)
 		{
-			std::cerr << "Rollover point must be positive\n";
+			if (!ProcessRolloverArgument(args[argIndex + 1], rolloverPoint))
+				return false;
+		}
+		else if (args[argIndex].compare("--inCol") == 0)
+		{
+			if (!ProcessColumnArgument(args[argIndex + 1], commandColumn))
+				return false;
+		}
+		else if (args[argIndex].compare("--rspCol") == 0)
+		{
+			if (!ProcessColumnArgument(args[argIndex + 1], responseColumn))
+				return false;
+		}
+		else
+		{
+			std::cerr << "Unexpected argument '" << args[argIndex] << "'\n";
+			PrintUsage(args.front());
 			return false;
 		}
 	}
@@ -137,13 +218,15 @@ int main(int argc, char *argv[])
 {
 	std::string inputFileName;
 	double rolloverPoint;
+	int inputColumn;
+	int responseColumn;
 
 	std::vector<std::string> args(argv, argv + argc);
-	if (!ProcessArguments(args, inputFileName, rolloverPoint))
+	if (!ProcessArguments(args, inputFileName, rolloverPoint, inputColumn, responseColumn))
 		return 1;
 
 	std::vector<ModelFitter::Slice> data;
-	if (!ReadInputData(inputFileName, data))
+	if (!ReadInputData(inputFileName, data, inputColumn, responseColumn))
 		return 1;
 
 	std::cout << "Found " << data.size() << " records in " << inputFileName << std::endl;
