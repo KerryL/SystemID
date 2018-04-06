@@ -25,9 +25,6 @@ double ResponseModeller::ComputeModelError(const Eigen::VectorXd& parameters)
 		for (j = 0; j < data[i].size(); ++j)
 		{
 			double error(fabs(data[i][j].response - modelledResponse[i][j]));
-			if (rolloverPoint > 0.0)
-				error = fabs(RolloverRangeAdjust(error));
-
 			totalError += error;
 			if (error > maximumError)
 				maximumError = error;
@@ -93,13 +90,4 @@ void ResponseModeller::ComputeCoefficients(const double& bandwidthFrequency,
 	const double denominator(bandwidthFrequency * sampleTime + 2.0);
 	a = bandwidthFrequency * sampleTime / denominator;
 	b = (bandwidthFrequency * sampleTime - 2.0) / denominator;
-}
-
-double ResponseModeller::RolloverRangeAdjust(const double& value) const
-{
-	assert(rolloverPoint > 0.0);
-	assert(value >= 0.0);
-
-	const int rolloverCount(static_cast<int>(value / rolloverPoint + 0.5));
-	return value - rolloverCount * rolloverPoint;
 }

@@ -45,8 +45,6 @@ private:
 		const double& dampingRatio, double& a, double& b1, double& b2);
 	void ComputeCoefficients(const double& bandwidthFrequency,
 		double& a, double& b);
-
-	double RolloverRangeAdjust(const double& value) const;
 };
 
 #endif// RESPONSE_MODELLER_H_
