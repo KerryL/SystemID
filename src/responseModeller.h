@@ -7,10 +7,13 @@
 #define RESPONSE_MODELLER_H_
 
 // Local headers
-#include "modelFitter.h"
+#include "slice.h"
 
 // Eigen headers
 #include <Eigen/Eigen>
+
+// Standard C++ headers
+#include <vector>
 
 class ResponseModeller
 {
@@ -18,10 +21,11 @@ public:
 	enum class ModelType
 	{
 		FirstOrder,
-		SecondOrder
+		SecondOrder,
+		NthOrder
 	};
 
-	ResponseModeller(const std::vector<std::vector<ModelFitter::Slice>>& data,
+	ResponseModeller(const std::vector<std::vector<Slice>>& data,
 		const double& sampleTime, const double& rolloverPoint, const ModelType& modelType)
 		: data(data), sampleTime(sampleTime), rolloverPoint(rolloverPoint), modelType(modelType) {}
 
@@ -29,7 +33,7 @@ public:
 	double GetMaximumError() const { return maximumError; }
 
 private:
-	const std::vector<std::vector<ModelFitter::Slice>>& data;
+	const std::vector<std::vector<Slice>>& data;
 	const double sampleTime;
 	const double rolloverPoint;
 	ModelType modelType;
@@ -40,11 +44,17 @@ private:
 	void ComputeModelledResponse(const double& bandwidthFrequency,
 		const double& dampingRatio);
 	void ComputeModelledResponse(const double& bandwidthFrequency);
+	void ComputeModelledResponse(const std::vector<double>& sNum, const std::vector<double>& sDen);
 
 	void ComputeCoefficients(const double& bandwidthFrequency,
 		const double& dampingRatio, double& a, double& b1, double& b2);
 	void ComputeCoefficients(const double& bandwidthFrequency,
 		double& a, double& b);
+	void ComputeCoefficients(const std::vector<double>& sNum, const std::vector<double>& sDen,
+		std::vector<double>& numCoef, std::vector<double>& denCoef);
+
+	std::vector<double> GetNumeratorCoefficients(const Eigen::VectorXd& parameters);
+	std::vector<double> GetDenominatorCoefficients(const Eigen::VectorXd& parameters);
 };
 
 #endif// RESPONSE_MODELLER_H_

@@ -6,6 +6,11 @@
 #ifndef MODEL_FITTER_H_
 #define MODEL_FITTER_H_
 
+// Local headers
+#include "nelderMead.h"
+#include "responseModeller.h"
+#include "slice.h"
+
 // Standard C++ headers
 #include <vector>
 
@@ -15,21 +20,15 @@ public:
 	ModelFitter(const unsigned int& iterationLimit, const double& rolloverPoint)
 		: iterationLimit(iterationLimit), rolloverPoint(rolloverPoint) {}
 
-	struct Slice
-	{
-		Slice(const double& time, const double& input, const double& response)
-			: time(time), input(input), response(response) {}
-
-		double time;// [sec]
-		double input;
-		double response;
-	};
-
 	bool DetermineParameters(const std::vector<std::vector<Slice>>& data,
 		double& bandwidthFrequency, double& sampleTime);
 
 	bool DetermineParameters(const std::vector<std::vector<Slice>>& data,
 		double& bandwidthFrequency, double& dampingRatio, double& sampleTime);
+
+	bool DetermineParameters(const std::vector<std::vector<Slice>>& data,
+		std::vector<double>& numerator, std::vector<double>& denominator,
+		const unsigned int& order, double& sampleTime);
 
 	unsigned int GetIterationCount() const { return iterationCount; }
 	double GetMaximumError() const { return maximumError; }

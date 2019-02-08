@@ -125,6 +125,7 @@
     <ClInclude Include="..\src\nelderMead.h" />
     <ClInclude Include="..\src\optimizer.h" />
     <ClInclude Include="..\src\responseModeller.h" />
+    <ClInclude Include="..\src\slice.h" />
     <ClInclude Include="..\src\utilities.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

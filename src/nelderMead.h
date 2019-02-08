@@ -84,14 +84,14 @@ private:
 	struct DynamicResize
 	{
 		static void Resize(PointVec& v, const int& trueParamCount);
-		static void Resize(ValueVec& v, const int& trueParamCount);
+		static void ResizeValue(ValueVec& v, const int& trueParamCount);
 		static void Resize(SimplexMat& m, const int& trueParamCount);
 	};
 
 	struct FixedResize
 	{
 		static void Resize(PointVec& /*v*/, const int& /*trueParamCount*/) {}
-		static void Resize(ValueVec& /*v*/, const int& /*trueParamCount*/) {}
+		static void ResizeValue(ValueVec& /*v*/, const int& /*trueParamCount*/) {}
 		static void Resize(SimplexMat& /*m*/, const int& /*trueParamCount*/) {}
 	};
 
@@ -275,7 +275,7 @@ template <int paramCount>
 void NelderMead<paramCount>::Initialize(SimplexMat& simplex, ValueVec& functionValue) const
 {
 	ConditionalResize::Resize(simplex, guess.size());
-	ConditionalResize::Resize(functionValue, guess.size());
+	ConditionalResize::ResizeValue(functionValue, guess.size());
 
 	simplex.col(0) = guess;
 	functionValue(0) = objectiveFunction(guess);
@@ -451,7 +451,7 @@ void NelderMead<paramCount>::DynamicResize::Resize(PointVec& v,
 
 //==========================================================================
 // Class:			NelderMead::DynamicResize
-// Function:		Resize
+// Function:		ResizeValue
 //
 // Description:		Resizes the vector to the specified size.
 //
@@ -467,7 +467,7 @@ void NelderMead<paramCount>::DynamicResize::Resize(PointVec& v,
 //
 //==========================================================================
 template <int paramCount>
-void NelderMead<paramCount>::DynamicResize::Resize(ValueVec& v,
+void NelderMead<paramCount>::DynamicResize::ResizeValue(ValueVec& v,
 	const int& trueParamCount)
 {
 	v.resize(trueParamCount + 1);

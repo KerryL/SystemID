@@ -5,8 +5,6 @@
 
 // Local headers
 #include "modelFitter.h"
-#include "nelderMead.h"
-#include "responseModeller.h"
 
 bool ModelFitter::DetermineParameters(const std::vector<std::vector<Slice>>& data,
 	double& bandwidthFrequency, double& sampleTime)
@@ -43,6 +41,33 @@ bool ModelFitter::DetermineParameters(const std::vector<std::vector<Slice>>& dat
 	Eigen::VectorXd parameters(optimization.Optimize());
 	bandwidthFrequency = parameters(0);
 	dampingRatio = parameters(1);
+
+	iterationCount = optimization.GetIterationCount();
+	maximumError = modeller.GetMaximumError();
+
+	return iterationCount < iterationLimit;
+}
+
+bool ModelFitter::DetermineParameters(const std::vector<std::vector<Slice>>& data,
+	std::vector<double>& numerator, std::vector<double>& denominator, const unsigned int& order, double& sampleTime)
+{
+	assert(order > 0);
+	sampleTime = ComputeSampleTime(data);
+
+	ResponseModeller modeller(data, sampleTime, rolloverPoint, ResponseModeller::ModelType::NthOrder);
+	auto objectiveFunction = std::bind(&ResponseModeller::ComputeModelError, &modeller, std::placeholders::_1);
+	NelderMead<Eigen::Dynamic> optimization(objectiveFunction, iterationLimit);
+	Eigen::VectorXd initialGuess(2 * order + 1);
+	initialGuess.topLeftCorner(order, 1) = Eigen::VectorXd::Zero(order);
+	initialGuess.bottomRightCorner(order + 1, 1) = Eigen::VectorXd::Ones(order + 1);
+	optimization.SetInitialGuess(initialGuess);
+
+	Eigen::VectorXd parameters(optimization.Optimize());
+	unsigned int i;
+	for (i = 0; i < numerator.size(); ++i)
+		numerator[i] = parameters(i);
+	for (auto& c : denominator)
+		c = parameters(i++);
 
 	iterationCount = optimization.GetIterationCount();
 	maximumError = modeller.GetMaximumError();

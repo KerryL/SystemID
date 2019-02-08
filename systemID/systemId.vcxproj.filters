@@ -47,5 +47,8 @@
     <ClInclude Include="..\src\utilities.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\slice.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
