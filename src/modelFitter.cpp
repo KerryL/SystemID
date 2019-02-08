@@ -18,7 +18,7 @@ bool ModelFitter::DetermineParameters(const std::vector<std::vector<Slice>>& dat
 	auto objectiveFunction = std::bind(&ResponseModeller::ComputeModelError, &modeller, std::placeholders::_1);
 	NelderMead<1> optimization(objectiveFunction, iterationLimit);
 	Eigen::VectorXd initialGuess(1);
-	initialGuess(0) = 1.0;
+	initialGuess(0) = bwGuess;
 	optimization.SetInitialGuess(initialGuess);
 
 	Eigen::VectorXd parameters(optimization.Optimize());
@@ -38,7 +38,7 @@ bool ModelFitter::DetermineParameters(const std::vector<std::vector<Slice>>& dat
 	ResponseModeller modeller(data, sampleTime, rolloverPoint, ResponseModeller::ModelType::SecondOrder);
 	auto objectiveFunction = std::bind(&ResponseModeller::ComputeModelError, &modeller, std::placeholders::_1);
 	NelderMead<2> optimization(objectiveFunction, iterationLimit);
-	Eigen::Vector2d initialGuess(1.0, 1.0);
+	Eigen::Vector2d initialGuess(bwGuess, 1.0);
 	optimization.SetInitialGuess(initialGuess);
 
 	Eigen::VectorXd parameters(optimization.Optimize());
@@ -77,12 +77,11 @@ bool ModelFitter::DetermineParameters(const std::vector<std::vector<Slice>>& dat
 	NelderMead<Eigen::Dynamic> optimization(objectiveFunction, iterationLimit);
 	Eigen::VectorXd initialGuess(2 * order + 1);
 	const double somethingSmall(0.1);
-	const double initialOmega(30);// [rad/sec]
 	initialGuess.head(order) = Eigen::VectorXd::Ones(order) * somethingSmall;
-	initialGuess(order) = pow(initialOmega, order);
+	initialGuess(order) = pow(bwGuess, order);
 	auto coefficients(BuildTriangularCoefficients(order));
 	for (unsigned int i = 0; i < order; ++i)
-		initialGuess(order + i + 1) = coefficients[i] * pow(initialOmega, i + 1);
+		initialGuess(order + i + 1) = coefficients[i] * pow(bwGuess, i + 1);
 	optimization.SetInitialGuess(initialGuess);
 
 	Eigen::VectorXd parameters(optimization.Optimize());

@@ -17,8 +17,8 @@
 class ModelFitter
 {
 public:
-	ModelFitter(const unsigned int& iterationLimit, const double& rolloverPoint)
-		: iterationLimit(iterationLimit), rolloverPoint(rolloverPoint) {}
+	ModelFitter(const unsigned int& iterationLimit, const double& rolloverPoint, const double& bwGuess)
+		: iterationLimit(iterationLimit), rolloverPoint(rolloverPoint), bwGuess(bwGuess) {}
 
 	bool DetermineParameters(const std::vector<std::vector<Slice>>& data,
 		double& bandwidthFrequency, double& sampleTime);
@@ -38,6 +38,7 @@ private:
 
 	const unsigned int iterationLimit;
 	const double rolloverPoint;
+	const double bwGuess;
 
 	unsigned int iterationCount;
 	double maximumError = 0.0;

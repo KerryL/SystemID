@@ -135,7 +135,7 @@ void PrintUsage(const std::string& appName)
 	std::cout
 		<< "Usage:  " << appName << " [--rollover <rolloverPoint>] [--order <order>]\n"
 		<< "            [--time-factor <factor>] [--inCol <index> --rspCol <index>]\n"
-		<< "            <first input file> ...\n\n"
+		<< "            [--bwGuess <bandwidth>] <first input file> ...\n\n"
 
 		<< "    Input files must be formatted into three columns separated by ',':\n"
 		<< "        Time, Input, Response\n"
@@ -151,6 +151,13 @@ void PrintUsage(const std::string& appName)
 
 		<< "    If order argument is supplied, an attempt is made to fit an arbitary\n"
 		<< "        transfer function of the specified order (n zeros and n poles).\n"
+
+		<< "    The solver requires an initial guess for the parameters.  Convergence is\n"
+		<< "    sometimes sensitive to the choice of the initial guess.  If you run into\n"
+		<< "    convergence issues, you can suggest a reasonable starting point with the\n"
+		<< "    bwGuess argument.  Units for bwGuess are Hertz.  The damping ratio for\n"
+		<< "    the initial guess is always zero.  If omitted, the initial bandwidth is\n"
+		<< "    about 10 Hz.\n\n"
 		<< std::endl;
 }
 
@@ -218,15 +225,35 @@ bool ProcessTimeFactorArgument(const std::string& arg, double& timeFactor)
 	std::istringstream ss(arg);
 	if ((ss >> timeFactor).fail())
 	{
-		std::cerr << "Invalid rollover specification:  '" << arg << "'\n";
+		std::cerr << "Invalid time factor specification:  '" << arg << "'\n";
 		return false;
 	}
 
 	if (timeFactor <= 0.0)
 	{
-		std::cerr << "timeFactor must be strictly positive\n";
+		std::cerr << "Time factor must be strictly positive\n";
 		return false;
 	}
+
+	return true;
+}
+
+bool ProcessBandwidthArgument(const std::string& arg, double& bandwidth)
+{
+	std::istringstream ss(arg);
+	if ((ss >> bandwidth).fail())
+	{
+		std::cerr << "Invalid bandwidth specification:  '" << arg << "'\n";
+		return false;
+	}
+
+	if (bandwidth <= 0.0)
+	{
+		std::cerr << "Bandwidth must be strictly positive\n";
+		return false;
+	}
+
+	bandwidth *= 2.0 * M_PI;
 
 	return true;
 }
@@ -242,7 +269,8 @@ struct Configuration
 
 	unsigned int order = 0;
 
-	double timeFactor = 1.0;
+	double timeFactor = 1.0;// [sec/input units]
+	double bandwidthGuess = 30.0;// [rad/sec]
 };
 
 bool ProcessArguments(const std::vector<std::string>& args, Configuration& configuration)
@@ -285,6 +313,12 @@ bool ProcessArguments(const std::vector<std::string>& args, Configuration& confi
 		else if (args[argIndex].compare("--time-factor") == 0)
 		{
 			if (!ProcessTimeFactorArgument(args[argIndex + 1], configuration.timeFactor))
+				return false;
+			++argIndex;
+		}
+		else if (args[argIndex].compare("--bwGuess") == 0)
+		{
+			if (!ProcessBandwidthArgument(args[argIndex + 1], configuration.bandwidthGuess))
 				return false;
 			++argIndex;
 		}
@@ -374,8 +408,8 @@ int main(int argc, char *argv[])
 	}());
 	std::cout << "Found " << recordCount << " records in " << configuration.inputFileNames.size() << " files" << std::endl;
 
-	const unsigned int iterationLimit(1000);
-	ModelFitter fitter(iterationLimit, configuration.rolloverPoint);
+	const unsigned int iterationLimit(100000);
+	ModelFitter fitter(iterationLimit, configuration.rolloverPoint, configuration.bandwidthGuess);
 	if (configuration.rolloverPoint > 0.0)
 	{
 		std::cout << "Unwinding data at " << configuration.rolloverPoint << std::endl;
