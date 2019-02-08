@@ -41,6 +41,8 @@ private:
 
 	unsigned int iterationCount;
 	double maximumError = 0.0;
+
+	std::vector<double> BuildTriangularCoefficients(const unsigned int& order);
 };
 
 #endif// MODEL_FITTER_H_

@@ -142,8 +142,8 @@ void PrintUsage(const std::string& appName)
 		<< "        Time must be in seconds or the time-factor argument must be supplied\n"
 		<< "        such that time * factor results units of seconds.\n"
 		<< "        If data files are not in this format or have more than three columns,\n"
-		<< "        --inCol and --rspCol argumetns must also be provided.  All input files\n"
-		<< "        must be in the same format.\n\n"
+		<< "        --inCol and --rspCol argumetns must also be provided.  Column 0 must\n"
+		<< "        contain the time data.  All input files must be in the same format.\n\n"
 
 		<< "    If rollover argument is omitted, no rollover correction is performed.\n\n"
 

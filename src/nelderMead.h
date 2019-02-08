@@ -188,43 +188,43 @@ Eigen::VectorXd NelderMead<paramCount>::Optimize() const
 	{
 		// Compute reflection of the worst point and its corresponding function value
 		centroid = AverageColumns(simplex.leftCols(simplex.rows()));
-		reflection = (1.0 + reflectionFactor) * centroid - reflectionFactor * simplex.template rightCols<1>();
+		reflection = (1.0 + reflectionFactor) * centroid - reflectionFactor * simplex.rightCols<1>();
 		reflectionValue = objectiveFunction(reflection);
 
 		if (reflectionValue < functionValue(0))// Reflected point is a new minimum
 		{
 			// Compute the expansion of the worst point and its corresponding function value
-			expansion = (1.0 + expansionSacle) * centroid - expansionSacle * simplex.template rightCols<1>();
+			expansion = (1.0 + expansionSacle) * centroid - expansionSacle * simplex.rightCols<1>();
 			expansionValue = objectiveFunction(expansion);
 
 			if (expansionValue < reflectionValue)
 			{
-				simplex.template rightCols<1>() = expansion;
-				functionValue.template tail<1>()(0) = expansionValue;
+				simplex.rightCols<1>() = expansion;
+				functionValue.tail<1>()(0) = expansionValue;
 			}
 			else
 			{
-				simplex.template rightCols<1>() = reflection;
-				functionValue.template tail<1>()(0) = reflectionValue;
+				simplex.rightCols<1>() = reflection;
+				functionValue.tail<1>()(0) = reflectionValue;
 			}
 		}
-		else if (reflectionValue < functionValue.template tail<2>()(0))// Reflected point is better than the 2nd-to-worst point
+		else if (reflectionValue < functionValue.tail<2>()(0))// Reflected point is better than the 2nd-to-worst point
 		{
-			simplex.template rightCols<1>() = reflection;
-			functionValue.template tail<1>()(0) = reflectionValue;
+			simplex.rightCols<1>() = reflection;
+			functionValue.tail<1>()(0) = reflectionValue;
 		}
 		else// Reflected point is no better than any other point we've tested
 		{
-			if (reflectionValue < functionValue.template tail<1>()(0))// Reflected point is not the worst
+			if (reflectionValue < functionValue.tail<1>()(0))// Reflected point is not the worst
 			{
 				// Perform an outside contraction
-				contraction = (1.0 + outsideContractionScale) * centroid - outsideContractionScale * simplex.template rightCols<1>();
+				contraction = (1.0 + outsideContractionScale) * centroid - outsideContractionScale * simplex.rightCols<1>();
 				contractionValue = objectiveFunction(contraction);
 
 				if (contractionValue <= reflectionValue)
 				{
-					simplex.template rightCols<1>() = contraction;
-					functionValue.template tail<1>()(0) = contractionValue;
+					simplex.rightCols<1>() = contraction;
+					functionValue.tail<1>()(0) = contractionValue;
 				}
 				else
 					Shrink(simplex, functionValue);
@@ -232,13 +232,13 @@ Eigen::VectorXd NelderMead<paramCount>::Optimize() const
 			else
 			{
 				// Perform an inside contraction
-				contraction = (1.0 - contractionFactor) * centroid + contractionFactor * simplex.template rightCols<1>();
+				contraction = (1.0 - contractionFactor) * centroid + contractionFactor * simplex.rightCols<1>();
 				contractionValue = objectiveFunction(contraction);
 
-				if (contractionValue < functionValue.template tail<1>()(0))
+				if (contractionValue < functionValue.tail<1>()(0))
 				{
-					simplex.template rightCols<1>() = contraction;
-					functionValue.template tail<1>()(0) = contractionValue;
+					simplex.rightCols<1>() = contraction;
+					functionValue.tail<1>()(0) = contractionValue;
 				}
 				else
 					Shrink(simplex, functionValue);
@@ -251,7 +251,7 @@ Eigen::VectorXd NelderMead<paramCount>::Optimize() const
 
 	iterationCount = i;
 
-	return simplex.template leftCols<1>();
+	return simplex.leftCols<1>();
 }
 
 //==========================================================================

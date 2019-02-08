@@ -11,6 +11,7 @@ ipch/
 *.opensdf
 *.bak
 *.swp
+*.csv
 
 # Ignore GKT directories
 bin/

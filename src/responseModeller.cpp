@@ -5,6 +5,7 @@
 
 // Local headers
 #include "responseModeller.h"
+#include "filter.h"
 
 // Standard C++ headers
 #include <cassert>
@@ -78,35 +79,17 @@ double ResponseModeller::ComputeModelError(const Eigen::VectorXd& parameters)
 void ResponseModeller::ComputeModelledResponse(const std::vector<double>& sNum,
 	const std::vector<double>& sDen)
 {
-	assert(sNum.size() == sDen.size() + 1);
-
 	modelledResponse.resize(data.size());
-	std::vector<double> numCoef;
-	std::vector<double> denCoef;
-	ComputeCoefficients(sNum, sDen, numCoef, denCoef);
-
+	std::vector<double> entireSDen(sDen);
+	entireSDen.insert(entireSDen.begin(), 1.0);
+	
 	for (unsigned int i = 0; i < modelledResponse.size(); ++i)
 	{
 		modelledResponse[i].resize(data[i].size());
-		for (unsigned int j = 0; j < sDen.size(); ++j)
-			modelledResponse[i][j] = data[i][0].response;
-
-		for (unsigned int j = sDen.size(); j < data[i].size(); ++j)
-		{
-			modelledResponse[i][j] = numCoef[0] * data[i][j].input;
-			for (unsigned int k = 0; k < sDen.size(); ++k)
-				modelledResponse[i][j] += numCoef[k + 1] * data[i][j - k - 1].input - denCoef[k] * modelledResponse[i][j - k - 1];
-		}
+		Filter filter(1.0 / sampleTime, sNum, entireSDen, data[i][0].response);
+		for (unsigned int j = 0; j < data[i].size(); ++j)
+			modelledResponse[i][j] = filter.Apply(data[i][j].input);
 	}
-}
-
-// Converts from continuous time coefficients to difference equation coefficients
-void ResponseModeller::ComputeCoefficients(const std::vector<double>& sNum,
-	const std::vector<double>& sDen, std::vector<double>& numCoef, std::vector<double>& denCoef)
-{
-	numCoef.resize(sNum.size());
-	denCoef.resize(sDen.size());
-	// TODO:  Implement
 }
 
 void ResponseModeller::ComputeCoefficients(const double& bandwidthFrequency,

@@ -50,8 +50,6 @@ private:
 		const double& dampingRatio, double& a, double& b1, double& b2);
 	void ComputeCoefficients(const double& bandwidthFrequency,
 		double& a, double& b);
-	void ComputeCoefficients(const std::vector<double>& sNum, const std::vector<double>& sDen,
-		std::vector<double>& numCoef, std::vector<double>& denCoef);
 
 	std::vector<double> GetNumeratorCoefficients(const Eigen::VectorXd& parameters);
 	std::vector<double> GetDenominatorCoefficients(const Eigen::VectorXd& parameters);

@@ -6,6 +6,9 @@
 // Local headers
 #include "modelFitter.h"
 
+// Standard C++ headers
+#include <algorithm>
+
 bool ModelFitter::DetermineParameters(const std::vector<std::vector<Slice>>& data,
 	double& bandwidthFrequency, double& sampleTime)
 {
@@ -48,6 +51,21 @@ bool ModelFitter::DetermineParameters(const std::vector<std::vector<Slice>>& dat
 	return iterationCount < iterationLimit;
 }
 
+std::vector<double> ModelFitter::BuildTriangularCoefficients(const unsigned int& order)
+{
+	std::vector<double> coefficients(order);
+	std::iota(coefficients.begin(), coefficients.end(), 1.0);
+	std::reverse(coefficients.begin(), coefficients.end());
+
+	for (unsigned int i = 2; i < order; ++i)// for each row in the triangle
+	{
+		for (unsigned int j = 1; j < i; ++j)// for each element in the middle of this row
+			coefficients[order - i + j - 1] += coefficients[order - i + j];
+	}
+
+	return coefficients;
+}
+
 bool ModelFitter::DetermineParameters(const std::vector<std::vector<Slice>>& data,
 	std::vector<double>& numerator, std::vector<double>& denominator, const unsigned int& order, double& sampleTime)
 {
@@ -58,12 +76,21 @@ bool ModelFitter::DetermineParameters(const std::vector<std::vector<Slice>>& dat
 	auto objectiveFunction = std::bind(&ResponseModeller::ComputeModelError, &modeller, std::placeholders::_1);
 	NelderMead<Eigen::Dynamic> optimization(objectiveFunction, iterationLimit);
 	Eigen::VectorXd initialGuess(2 * order + 1);
-	initialGuess.topLeftCorner(order, 1) = Eigen::VectorXd::Zero(order);
-	initialGuess.bottomRightCorner(order + 1, 1) = Eigen::VectorXd::Ones(order + 1);
+	const double somethingSmall(0.1);
+	const double initialOmega(30);// [rad/sec]
+	initialGuess.head(order) = Eigen::VectorXd::Ones(order) * somethingSmall;
+	initialGuess(order) = pow(initialOmega, order);
+	auto coefficients(BuildTriangularCoefficients(order));
+	for (unsigned int i = 0; i < order; ++i)
+		initialGuess(order + i + 1) = coefficients[i] * pow(initialOmega, i + 1);
 	optimization.SetInitialGuess(initialGuess);
+
+	//optimization.SetReflectionFactor(5.0);
 
 	Eigen::VectorXd parameters(optimization.Optimize());
 	unsigned int i;
+	numerator.resize(order + 1);
+	denominator.resize(order);
 	for (i = 0; i < numerator.size(); ++i)
 		numerator[i] = parameters(i);
 	for (auto& c : denominator)
