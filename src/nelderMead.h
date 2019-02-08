@@ -71,6 +71,9 @@ private:
 	typedef typename std::conditional<paramCount == Eigen::Dynamic,
 		Eigen::MatrixXd,
 		Eigen::Matrix<double, paramCount, paramCount>>::type NbyNMat;
+	typedef typename std::conditional<paramCount == Eigen::Dynamic,
+		Eigen::PermutationMatrix<paramCount, paramCount>,
+		Eigen::PermutationMatrix<paramCount + 1, paramCount + 1>>::type PermutationMat;
 
 	PointVec guess;
 	void Initialize(SimplexMat& simplex, ValueVec& functionValue) const;
@@ -321,9 +324,9 @@ void NelderMead<paramCount>::SortByFunctionValue(SimplexMat& simplex, ValueVec& 
 	std::iota(order.begin(), order.end(), 0);
 	std::vector<std::pair<double, int> > valueZip(Utilities::Zip(functionValue.data(), order));
 	std::sort(valueZip.begin(), valueZip.end());
-	Utilities::Unzip<double, int>(valueZip, NULL, &order);
+	Utilities::Unzip<double, int>(valueZip, nullptr, &order);
 
-	Eigen::PermutationMatrix<paramCount + 1, paramCount + 1> p;
+	PermutationMat p(functionValue.rows());
 	int i;
 	for (i = 0; i < p.size(); i++)
 		p.indices()(i) = order[i];

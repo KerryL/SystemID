@@ -85,8 +85,6 @@ bool ModelFitter::DetermineParameters(const std::vector<std::vector<Slice>>& dat
 		initialGuess(order + i + 1) = coefficients[i] * pow(initialOmega, i + 1);
 	optimization.SetInitialGuess(initialGuess);
 
-	//optimization.SetReflectionFactor(5.0);
-
 	Eigen::VectorXd parameters(optimization.Optimize());
 	unsigned int i;
 	numerator.resize(order + 1);
