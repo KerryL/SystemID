@@ -331,25 +331,9 @@ bool ProcessArguments(const std::vector<std::string>& args, Configuration& confi
 
 std::string AssembleSExpression(const std::vector<double> coefficients)
 {
-	const double nearlyZero([coefficients]()
-	{
-		double maxElement(0.0);
-		for (const auto& c : coefficients)
-		{
-			if (fabs(c) > maxElement)
-				maxElement = fabs(c);
-		}
-
-		const double orderShift(1.0e-6);
-		return maxElement * orderShift;
-	}());
-
 	std::ostringstream ss;
 	for (unsigned int c = 0; c < coefficients.size(); ++c)
 	{
-		if (fabs(coefficients[c]) < nearlyZero)
-			continue;
-
 		if (!ss.str().empty())
 		{
 			if (coefficients[c] > 0)
@@ -358,7 +342,8 @@ std::string AssembleSExpression(const std::vector<double> coefficients)
 				ss << " - ";
 		}
 
-		ss << fabs(coefficients[c]);
+		if (fabs(coefficients[c]) != 1.0)
+			ss << fabs(coefficients[c]);
 		const unsigned int power(coefficients.size() - c - 1);
 		if (power == 1)
 			ss << "s";
@@ -462,4 +447,3 @@ int main(int argc, char *argv[])
 
 	return 0;
 }
-
