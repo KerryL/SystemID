@@ -531,10 +531,10 @@ int main(int argc, char *argv[])
 
 	if (!configuration.modelNum.empty() && !configuration.modelDen.empty() && !configuration.modelParams.empty())
 	{
-		std::cout << "\nFitting parameters for model given as\n    "
+		std::cout << "\nFitting parameters for model given as\n\n    "
 			<< configuration.modelNum << "\n    "
 			<< std::string(std::max(configuration.modelNum.length(), configuration.modelDen.length()), '-') << "\n    "
-			<< configuration.modelDen << std::endl;
+			<< configuration.modelDen << '\n' << std::endl;
 		std::cout << "Model includes " << configuration.modelParams.size() << " parameters" << std::endl;
 		std::map<std::string, double> modelParams;
 		for (const auto& p : configuration.modelParams)

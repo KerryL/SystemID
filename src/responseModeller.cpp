@@ -113,7 +113,7 @@ void ResponseModeller::ComputeModelledResponse(const std::vector<double>& sNum,
 	for (unsigned int i = 0; i < modelledResponse.size(); ++i)
 	{
 		modelledResponse[i].resize(data[i].size());
-		Filter filter(1.0 / sampleTime, sNum, entireSDen, data[i][0].response);
+		Filter filter(1.0 / sampleTime, sNum, entireSDen, data[i][0].input);
 		for (unsigned int j = 0; j < data[i].size(); ++j)
 			modelledResponse[i][j] = filter.Apply(data[i][j].input);
 	}
