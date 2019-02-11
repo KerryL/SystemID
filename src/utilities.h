@@ -36,6 +36,8 @@ namespace Utilities
 		const std::vector<double>& observedValues,
 		const std::vector<double>& fitValues);
 
+	std::string ReplaceAllOccurrences(std::string s, const std::string& pattern, const std::string& newString);
+
 	typedef std::vector<double>::size_type RowType;
 
 	template<typename T>

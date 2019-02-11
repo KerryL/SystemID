@@ -13,6 +13,7 @@
 
 // Standard C++ headers
 #include <vector>
+#include <map>
 
 class ModelFitter
 {
@@ -29,6 +30,10 @@ public:
 	bool DetermineParameters(const std::vector<std::vector<Slice>>& data,
 		std::vector<double>& numerator, std::vector<double>& denominator,
 		const unsigned int& order, double& sampleTime);
+
+	bool DetermineParameters(const std::vector<std::vector<Slice>>& data,
+		const std::string& numerator, const std::string& denominator,
+		std::map<std::string, double>& parameters, double& sampleTime);
 
 	unsigned int GetIterationCount() const { return iterationCount; }
 	double GetMaximumError() const { return maximumError; }

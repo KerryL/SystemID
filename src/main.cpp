@@ -5,6 +5,7 @@
 
 // Local headers
 #include "modelFitter.h"
+#include "expressionTree.h"
 
 // Standard C++ headers
 #include <fstream>
@@ -12,6 +13,7 @@
 #include <sstream>
 #include <string>
 #include <cmath>
+#include <set>
 
 bool ParseValue(const std::string& token, double& value)
 {
@@ -150,14 +152,24 @@ void PrintUsage(const std::string& appName)
 		<< "    If time-factor argument is omitted, no scaling is applied to the time data.\n\n"
 
 		<< "    If order argument is supplied, an attempt is made to fit an arbitary\n"
-		<< "        transfer function of the specified order (n zeros and n poles).\n"
+		<< "    transfer function of the specified order (n zeros and n poles).\n"
 
 		<< "    The solver requires an initial guess for the parameters.  Convergence is\n"
 		<< "    sometimes sensitive to the choice of the initial guess.  If you run into\n"
 		<< "    convergence issues, you can suggest a reasonable starting point with the\n"
 		<< "    bwGuess argument.  Units for bwGuess are Hertz.  The damping ratio for\n"
 		<< "    the initial guess is always zero.  If omitted, the initial bandwidth is\n"
-		<< "    about 10 Hz.\n\n"
+		<< "    about 10 Hz.  Does not apply to user-specified models.\n\n"
+
+		<< "    The solver can be used to adjust parameters for user-specified models.  To\n"
+		<< "    specify a model, use the --model_num and --model_den arguments to give the\n"
+		<< "    numerator and denominators of the continuous-time transfer function.  Use\n"
+		<< "    'p' to prefix parameter names.  For example, to fit a second-order high-\n"
+		<< "    pass filter, specify arguments like this:\n"
+		<< "      --modelNum s^2 --modelDen s^2+2*pOmega*pZeta*s+pOmega^2\n"
+		<< "    Do not use spaces within the model arguments.  All multiplications must be\n"
+		<< "    specified explicitly (i.e. '5s' will fail where '5*s' will be accepted).\n"
+		<< "    Initial guess for all parameters is 1.0.\n\n"
 		<< std::endl;
 }
 
@@ -258,6 +270,62 @@ bool ProcessBandwidthArgument(const std::string& arg, double& bandwidth)
 	return true;
 }
 
+bool IsOperatorOrParenthese(const char& c)
+{
+	return c == '-' || c == '+' || c == '*' ||
+		c == '/' || c == '^' || c == '(' || c == ')';
+}
+
+bool IsNumber(const std::string& s)
+{
+	std::istringstream ss(s);
+	double dummy;
+	return !(ss >> dummy).fail() && ss.eof();
+}
+
+std::string::size_type GetNextEndPosition(const std::string& s)
+{
+	for (std::string::size_type p = 1; p < s.length(); ++p)
+	{
+		if (IsOperatorOrParenthese(s[p]))
+			return p;
+	}
+
+	return std::string::npos;
+}
+
+bool ProcessModelArgument(const std::string& arg, std::string& model, std::set<std::string>& params)
+{
+	if (arg.empty())// TODO:  Trim first?
+		return false;
+
+	for (std::string::size_type p = 0; p < arg.length();)
+	{
+		const auto sLen(GetNextEndPosition(arg.substr(p)));
+		const auto subStr(arg.substr(p, sLen));
+
+		if (subStr.front() == 'p')
+			params.insert(subStr);
+		else if (subStr.front() == '(')
+		{
+			++p;
+			continue;
+		}
+		
+		p += subStr.length() + 1;
+	}
+
+	model = arg;
+
+	std::string temp(model);
+	for (const auto& p : params)
+		temp = Utilities::ReplaceAllOccurrences(temp, p, "1");
+
+	ExpressionTree e;
+	std::string expression;
+	return e.Solve(temp, expression).empty();
+}
+
 struct Configuration
 {
 	std::vector<std::string> inputFileNames;
@@ -268,6 +336,9 @@ struct Configuration
 	int responseColumn = 2;
 
 	unsigned int order = 0;
+	std::string modelNum;
+	std::string modelDen;
+	std::set<std::string> modelParams;
 
 	double timeFactor = 1.0;// [sec/input units]
 	double bandwidthGuess = 30.0;// [rad/sec]
@@ -322,11 +393,24 @@ bool ProcessArguments(const std::vector<std::string>& args, Configuration& confi
 				return false;
 			++argIndex;
 		}
+		else if (args[argIndex].compare("--modelNum") == 0)
+		{
+			if (!ProcessModelArgument(args[argIndex + 1], configuration.modelNum, configuration.modelParams))
+				return false;
+			++argIndex;
+		}
+		else if (args[argIndex].compare("--modelDen") == 0)
+		{
+			if (!ProcessModelArgument(args[argIndex + 1], configuration.modelDen, configuration.modelParams))
+				return false;
+			++argIndex;
+		}
 		else
 			configuration.inputFileNames.push_back(args[argIndex]);
 	}
 
-	return !configuration.inputFileNames.empty();
+	return !configuration.inputFileNames.empty() &&
+		configuration.modelNum.empty() == configuration.modelDen.empty();
 }
 
 std::string AssembleSExpression(const std::vector<double> coefficients)
@@ -439,6 +523,30 @@ int main(int argc, char *argv[])
 			std::cout << "  Optimization complete after " << fitter.GetIterationCount() << " iterations" << std::endl;
 			std::cout << "  Sample time = " << sampleTime << " sec" << std::endl;
 			PrintTransferFunction(nOrderNum, nOrderDen);
+			std::cout << "  Maximum error = " << fitter.GetMaximumError() << std::endl;
+		}
+		else
+			std::cout << "  Solution failed to converge after " << iterationLimit << " iterations" << std::endl;
+	}
+
+	if (!configuration.modelNum.empty() && !configuration.modelDen.empty() && !configuration.modelParams.empty())
+	{
+		std::cout << "\nFitting parameters for model given as\n    "
+			<< configuration.modelNum << "\n    "
+			<< std::string(std::max(configuration.modelNum.length(), configuration.modelDen.length()), '-') << "\n    "
+			<< configuration.modelDen << std::endl;
+		std::cout << "Model includes " << configuration.modelParams.size() << " parameters" << std::endl;
+		std::map<std::string, double> modelParams;
+		for (const auto& p : configuration.modelParams)
+			modelParams[p] = 0.0;
+
+		if (fitter.DetermineParameters(data, configuration.modelNum, configuration.modelDen, modelParams, sampleTime))
+		{
+			std::cout << "  Optimization complete after " << fitter.GetIterationCount() << " iterations" << std::endl;
+			std::cout << "  Sample time = " << sampleTime << " sec" << std::endl;
+			auto it(modelParams.begin());
+			for (; it != modelParams.end(); ++it)
+				std::cout << "  " << it->first << " = " << it->second << std::endl;
 			std::cout << "  Maximum error = " << fitter.GetMaximumError() << std::endl;
 		}
 		else

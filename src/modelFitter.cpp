@@ -99,11 +99,41 @@ bool ModelFitter::DetermineParameters(const std::vector<std::vector<Slice>>& dat
 	return iterationCount < iterationLimit;
 }
 
+bool ModelFitter::DetermineParameters(const std::vector<std::vector<Slice>>& data,
+	const std::string& numerator, const std::string& denominator,
+	std::map<std::string, double>& userParameters, double& sampleTime)
+{
+	assert(!numerator.empty());
+	assert(!denominator.empty());
+	assert(!userParameters.empty());
+
+	sampleTime = ComputeSampleTime(data);
+
+	std::vector<std::string> userParamVector;
+	for (const auto& p : userParameters)
+		userParamVector.push_back(p.first);
+
+	ResponseModeller modeller(data, sampleTime, rolloverPoint, numerator, denominator, userParamVector);
+	auto objectiveFunction = std::bind(&ResponseModeller::ComputeModelError, &modeller, std::placeholders::_1);
+	NelderMead<Eigen::Dynamic> optimization(objectiveFunction, iterationLimit);
+	Eigen::VectorXd initialGuess(Eigen::VectorXd::Ones(userParameters.size()));
+	optimization.SetInitialGuess(initialGuess);
+
+	Eigen::VectorXd parameters(optimization.Optimize());
+	auto it(userParameters.begin());
+	for (int i = 0; i < parameters.size(); ++i)
+		it++->second = parameters(i);
+
+	iterationCount = optimization.GetIterationCount();
+	maximumError = modeller.GetMaximumError();
+
+	return iterationCount < iterationLimit;
+}
+
 double ModelFitter::ComputeSampleTime(const std::vector<std::vector<Slice>>& data)
 {
 	std::vector<double> sampleTimes(data.size());
-	unsigned int i;
-	for (i = 0; i < data.size(); ++i)
+	for (unsigned int i = 0; i < data.size(); ++i)
 		sampleTimes[i] = (data[i].back().time - data[i].front().time) / (data[i].size() - 1);
 
 	return std::accumulate(sampleTimes.begin(), sampleTimes.end(), 0.0) / sampleTimes.size();

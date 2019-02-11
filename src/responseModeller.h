@@ -22,12 +22,18 @@ public:
 	{
 		FirstOrder,
 		SecondOrder,
-		NthOrder
+		NthOrder,
+		UserModel
 	};
 
 	ResponseModeller(const std::vector<std::vector<Slice>>& data,
 		const double& sampleTime, const double& rolloverPoint, const ModelType& modelType)
 		: data(data), sampleTime(sampleTime), rolloverPoint(rolloverPoint), modelType(modelType) {}
+	ResponseModeller(const std::vector<std::vector<Slice>>& data,
+		const double& sampleTime, const double& rolloverPoint, const std::string& userNum,
+		const std::string& userDen, const std::vector<std::string>& userParams)
+		: data(data), sampleTime(sampleTime), rolloverPoint(rolloverPoint), modelType(ModelType::UserModel),
+		userNum(userNum), userDen(userDen), userParams(userParams) {}
 
 	double ComputeModelError(const Eigen::VectorXd& parameters);
 	double GetMaximumError() const { return maximumError; }
@@ -36,7 +42,10 @@ private:
 	const std::vector<std::vector<Slice>>& data;
 	const double sampleTime;
 	const double rolloverPoint;
-	ModelType modelType;
+	const ModelType modelType;
+	const std::string userNum;
+	const std::string userDen;
+	const std::vector<std::string> userParams;
 	double maximumError = 0.0;
 
 	std::vector<std::vector<double>> modelledResponse;

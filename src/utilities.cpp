@@ -81,3 +81,16 @@ double Utilities::ComputeStanardErrorOfRegression(
 
 	return std::sqrt(residualSumSquares / observedValues.size());
 }
+
+std::string Utilities::ReplaceAllOccurrences(std::string s,
+	const std::string& pattern, const std::string& newString)
+{
+	std::string::size_type position(0);
+	while (position = s.find(pattern, position), position != std::string::npos)
+	{
+		s.replace(position, pattern.length(), newString);
+		position += newString.length();
+	}
+
+	return s;
+}

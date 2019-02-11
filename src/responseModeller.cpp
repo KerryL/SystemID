@@ -6,6 +6,7 @@
 // Local headers
 #include "responseModeller.h"
 #include "filter.h"
+#include "utilities.h"
 
 // Standard C++ headers
 #include <cassert>
@@ -55,8 +56,34 @@ double ResponseModeller::ComputeModelError(const Eigen::VectorXd& parameters)
 		ComputeModelledResponse(parameters(0));
 	else if (modelType == ModelType::SecondOrder)
 		ComputeModelledResponse(parameters(0), parameters(1));
-	else// if (modelType == ModelType::NthOrder)
+	else if (modelType == ModelType::NthOrder)
 		ComputeModelledResponse(GetNumeratorCoefficients(parameters), GetDenominatorCoefficients(parameters));
+	else if (modelType == ModelType::UserModel)
+	{
+		std::string numString(userNum);
+		std::string denString(userDen);
+
+		for (unsigned int i = 0; i < userParams.size(); ++i)
+		{
+			std::ostringstream ss;
+			ss.precision(15);
+			ss << std::fixed << parameters(i);
+			numString = Utilities::ReplaceAllOccurrences(numString, userParams[i], ss.str());
+			denString = Utilities::ReplaceAllOccurrences(denString, userParams[i], ss.str());
+		}
+
+		auto numerator(Filter::CoefficientsFromString(numString));
+		auto denominator(Filter::CoefficientsFromString(denString));
+
+		// Scale parameters so denominator has first coefficient = 1
+		for (auto& c : numerator)
+			c /= denominator.front();
+		for (auto& c : denominator)
+			c /= denominator.front();
+		denominator.erase(denominator.begin());
+
+		ComputeModelledResponse(numerator, denominator);
+	}
 
 	maximumError = 0.0;
 	double totalError(0.0);
