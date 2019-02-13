@@ -37,6 +37,10 @@ public:
 	void SetContractionFactor(const double& factor) { assert(factor > 0.0 && factor < 1.0); contractionFactor = factor; }
 	void SetShrinkFactor(const double& factor) { assert(factor > 0.0 && factor < 1.0); shrinkFactor = factor; }
 
+	// Parameters for assisting with stabilization of calculations that can result in NaN
+	void SetAdjustmentFactor(const double& factor) { assert(factor > 0.0 && factor < 1.0); adjustmentFactor = factor; }
+	void SetEvaluationIterationLimit(const unsigned int& limit) { evalIterationLimit = limit; }
+
 	typedef Eigen::Matrix<double, paramCount, 1> PointVec;
 
 	void SetInitialGuess(const PointVec& initialGuess) { guess = initialGuess; }
@@ -57,6 +61,9 @@ private:
 	double expansionFactor;
 	double contractionFactor;
 	double shrinkFactor;
+
+	double adjustmentFactor;
+	unsigned int evalIterationLimit;
 
 	mutable unsigned int iterationCount;
 
@@ -100,6 +107,9 @@ private:
 
 	typedef typename std::conditional<paramCount == Eigen::Dynamic,
 		DynamicResize, FixedResize>::type ConditionalResize;
+
+	bool StableEvaluate(const PointVec& centroid, const PointVec& worst,
+		double factor, PointVec& point, double& value) const;
 };
 
 // Standard C++ headers
@@ -141,6 +151,9 @@ NelderMead<paramCount>::NelderMead(ObjectiveFunction objectiveFunction,
 	expansionFactor = 2.0;
 	contractionFactor = 0.5;
 	shrinkFactor = 0.5;
+
+	adjustmentFactor = 0.8;
+	evalIterationLimit = 100;
 }
 
 //==========================================================================
@@ -191,14 +204,15 @@ Eigen::VectorXd NelderMead<paramCount>::Optimize() const
 	{
 		// Compute reflection of the worst point and its corresponding function value
 		centroid = AverageColumns(simplex.leftCols(simplex.rows()));
-		reflection = (1.0 + reflectionFactor) * centroid - reflectionFactor * simplex.rightCols<1>();
-		reflectionValue = objectiveFunction(reflection);
+
+		if (!StableEvaluate(centroid, simplex.rightCols<1>(), reflectionFactor, reflection, reflectionValue))
+			return centroid;// TODO:  Warn user?
 
 		if (reflectionValue < functionValue(0))// Reflected point is a new minimum
 		{
 			// Compute the expansion of the worst point and its corresponding function value
-			expansion = (1.0 + expansionSacle) * centroid - expansionSacle * simplex.rightCols<1>();
-			expansionValue = objectiveFunction(expansion);
+			if (!StableEvaluate(centroid, simplex.rightCols<1>(), expansionSacle, expansion, expansionValue))
+				return centroid;// TODO:  Warn user?
 
 			if (expansionValue < reflectionValue)
 			{
@@ -221,8 +235,8 @@ Eigen::VectorXd NelderMead<paramCount>::Optimize() const
 			if (reflectionValue < functionValue.tail<1>()(0))// Reflected point is not the worst
 			{
 				// Perform an outside contraction
-				contraction = (1.0 + outsideContractionScale) * centroid - outsideContractionScale * simplex.rightCols<1>();
-				contractionValue = objectiveFunction(contraction);
+				if (!StableEvaluate(centroid, simplex.rightCols<1>(), outsideContractionScale, contraction, contractionValue))
+					return centroid;// TODO:  Warn user?
 
 				if (contractionValue <= reflectionValue)
 				{
@@ -235,8 +249,8 @@ Eigen::VectorXd NelderMead<paramCount>::Optimize() const
 			else
 			{
 				// Perform an inside contraction
-				contraction = (1.0 - contractionFactor) * centroid + contractionFactor * simplex.rightCols<1>();
-				contractionValue = objectiveFunction(contraction);
+				if (!StableEvaluate(centroid, simplex.rightCols<1>(), -contractionFactor, contraction, contractionValue))
+					return centroid;// TODO:  Warn user?
 
 				if (contractionValue < functionValue.tail<1>()(0))
 				{
@@ -255,6 +269,44 @@ Eigen::VectorXd NelderMead<paramCount>::Optimize() const
 	iterationCount = i;
 
 	return simplex.leftCols<1>();
+}
+
+//==========================================================================
+// Class:			NelderMead
+// Function:		StableEvaluate
+//
+// Description:		Evaluates the objective function for the calculated point,
+//					looping to adjust the factor if necessary to arrive at a
+//					finite value.
+//
+// Input Arguments:
+//		centroid			= const PointVec&
+//		worst				= const PointVec&
+//		factor				= double
+//
+// Output Arguments:
+//		point				= PointVec&
+//		value				= double&
+//
+// Return Value:
+//		bool
+//
+//==========================================================================
+template <int paramCount>
+bool NelderMead<paramCount>::StableEvaluate(const PointVec& centroid,
+	const PointVec& worst, double factor, PointVec& point, double& value) const
+{
+	for (unsigned int i = 0; i < iterationLimit; ++i)
+	{
+		point = (1.0 + factor) * centroid - factor * worst;
+		value = objectiveFunction(point);
+		if (std::isfinite(value))
+			return true;
+
+		factor *= adjustmentFactor;
+	}
+	
+	return false;
 }
 
 //==========================================================================

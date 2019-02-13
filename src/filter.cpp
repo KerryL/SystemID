@@ -165,6 +165,9 @@ std::string Filter::AssembleZExpression(
 		}
 	}
 
+	if (result.empty())
+		result = "0";
+
 	return result;
 }
 
