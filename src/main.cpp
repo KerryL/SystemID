@@ -289,7 +289,7 @@ std::string::size_type GetNextEndPosition(const std::string& s)
 {
 	for (std::string::size_type p = 1; p < s.length(); ++p)
 	{
-		if (IsOperatorOrParenthese(s[p]))
+		if (IsOperatorOrParenthese(s[p]) && s[p-1] != '=')
 			return p;
 	}
 
