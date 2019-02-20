@@ -166,10 +166,12 @@ void PrintUsage(const std::string& appName)
 		<< "    numerator and denominators of the continuous-time transfer function.  Use\n"
 		<< "    'p' to prefix parameter names.  For example, to fit a second-order high-\n"
 		<< "    pass filter, specify arguments like this:\n"
-		<< "      --modelNum s^2 --modelDen s^2+2*pOmega*pZeta*s+pOmega^2\n"
+		<< "      --modelNum s^2 --modelDen s^2+2*pOmega=30*pZeta=0.7*s+pOmega^2\n"
 		<< "    Do not use spaces within the model arguments.  All multiplications must be\n"
 		<< "    specified explicitly (i.e. '5s' will fail where '5*s' will be accepted).\n"
-		<< "    Initial guess for all parameters is 1.0.\n\n"
+		<< "    Initial guesses can be specified for all parameters using 'pName=value'\n"
+		<< "    syntax, for example 'pOmega=30.'  If no initial guess is specified, the\n"
+		<< "    initial value for that parameter will be 1.\n\n"
 		<< std::endl;
 }
 
@@ -294,7 +296,61 @@ std::string::size_type GetNextEndPosition(const std::string& s)
 	return std::string::npos;
 }
 
-bool ProcessModelArgument(const std::string& arg, std::string& model, std::set<std::string>& params)
+struct Parameter
+{
+	std::string name;
+	double initialGuess = 1.0;
+
+	bool operator<(const Parameter& other) const
+	{
+		return name < other.name;
+	}
+};
+
+bool ParseParameter(const std::string& s, Parameter& p)
+{
+	const auto equalPos(s.find('='));
+	p.name = s.substr(0, equalPos);
+	if (equalPos == std::string::npos)
+		return true;
+
+	std::istringstream ss(s.substr(equalPos + 1));
+	if ((ss >> p.initialGuess).fail())
+	{
+		std::cerr << "Failed to parse initial guess from " << s << '\n';
+		return false;
+	}
+
+	return true;
+}
+
+std::string StripInitialGuesses(std::string model)
+{
+	std::string::size_type equalPos(0);
+	while (equalPos = model.find('=', equalPos), equalPos != std::string::npos)
+	{
+		const auto nextEnd(GetNextEndPosition(model.substr(equalPos)));
+		std::string temp(model.substr(0, equalPos));
+		if (nextEnd == std::string::npos)
+			model = temp;
+		else
+			model = temp + model.substr(equalPos + nextEnd);
+	}
+
+	return model;
+}
+
+bool ExpressionIsValid(std::string model, const std::set<Parameter>& params)
+{
+	for (const auto& p : params)
+		model = Utilities::ReplaceAllOccurrences(model, p.name, "1");
+
+	ExpressionTree e;
+	std::string expression;
+	return e.Solve(model, expression).empty();
+}
+
+bool ProcessModelArgument(const std::string& arg, std::string& model, std::set<Parameter>& params)
 {
 	if (arg.empty())// TODO:  Trim first?
 		return false;
@@ -305,7 +361,21 @@ bool ProcessModelArgument(const std::string& arg, std::string& model, std::set<s
 		const auto subStr(arg.substr(p, sLen));
 
 		if (subStr.front() == 'p')
-			params.insert(subStr);
+		{
+			Parameter param;
+			if (!ParseParameter(subStr, param))
+				return false;
+
+			auto it(params.begin());
+			for (; it != params.end(); ++it)
+			{
+				if (it->name.compare(param.name) == 0)
+					break;
+			}
+
+			if (it == params.end())
+				params.insert(param);
+		}
 		else if (subStr.front() == '(')
 		{
 			++p;
@@ -315,15 +385,8 @@ bool ProcessModelArgument(const std::string& arg, std::string& model, std::set<s
 		p += subStr.length() + 1;
 	}
 
-	model = arg;
-
-	std::string temp(model);
-	for (const auto& p : params)
-		temp = Utilities::ReplaceAllOccurrences(temp, p, "1");
-
-	ExpressionTree e;
-	std::string expression;
-	return e.Solve(temp, expression).empty();
+	model = StripInitialGuesses(arg);
+	return ExpressionIsValid(model, params);
 }
 
 struct Configuration
@@ -338,7 +401,7 @@ struct Configuration
 	unsigned int order = 0;
 	std::string modelNum;
 	std::string modelDen;
-	std::set<std::string> modelParams;
+	std::set<Parameter> modelParams;
 
 	double timeFactor = 1.0;// [sec/input units]
 	double bandwidthGuess = 30.0;// [rad/sec]
@@ -538,7 +601,7 @@ int main(int argc, char *argv[])
 		std::cout << "Model includes " << configuration.modelParams.size() << " parameters" << std::endl;
 		std::map<std::string, double> modelParams;
 		for (const auto& p : configuration.modelParams)
-			modelParams[p] = 0.0;
+			modelParams[p.name] = p.initialGuess;
 
 		if (fitter.DetermineParameters(data, configuration.modelNum, configuration.modelDen, modelParams, sampleTime))
 		{

@@ -110,13 +110,16 @@ bool ModelFitter::DetermineParameters(const std::vector<std::vector<Slice>>& dat
 	sampleTime = ComputeSampleTime(data);
 
 	std::vector<std::string> userParamVector;
+	Eigen::VectorXd initialGuess(userParameters.size());
 	for (const auto& p : userParameters)
+	{
+		initialGuess(userParamVector.size()) = p.second;
 		userParamVector.push_back(p.first);
+	}
 
 	ResponseModeller modeller(data, sampleTime, rolloverPoint, numerator, denominator, userParamVector);
 	auto objectiveFunction = std::bind(&ResponseModeller::ComputeModelError, &modeller, std::placeholders::_1);
 	NelderMead<Eigen::Dynamic> optimization(objectiveFunction, iterationLimit);
-	Eigen::VectorXd initialGuess(Eigen::VectorXd::Ones(userParameters.size()));
 	optimization.SetInitialGuess(initialGuess);
 
 	Eigen::VectorXd parameters(optimization.Optimize());
