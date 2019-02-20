@@ -1457,7 +1457,11 @@ void ExpressionTree::AddToExpressionString(std::string &expression,
 	{
 		std::ostringstream ss;
 		ss.precision(IDMath::GetPrecision(coefficient, mPrintfPrecision));
-		ss << std::fixed << fabs(coefficient);
+		if (expression.empty())
+			ss << std::fixed << coefficient;
+		else
+			ss << std::fixed << fabs(coefficient);
+
 		if (power == 1)
 			ss << "*s";
 		else if (power != 0)
