@@ -1302,7 +1302,7 @@ unsigned int ExpressionTree::FindEndOfNextTerm(const std::string &s, const unsig
 
 	if (minusEnd < plusEnd && start + minusEnd > 0 && NextIsOperator(s.substr(start + minusEnd - 1, 1)))
 	{
-		unsigned int nextMinus = s.substr(start + minusEnd + 1).find('-');
+		auto nextMinus(s.substr(start + minusEnd + 1).find('-'));
 		if (nextMinus != std::string::npos)
 			minusEnd += nextMinus + 1;
 		else
@@ -1384,14 +1384,15 @@ std::vector<std::pair<int, double>> ExpressionTree::FindPowersAndCoefficients(co
 //		s		= const std::string&
 //
 // Output Arguments:
-//		start	= unsigned int&
-//		end		= unsigned int&
+//		start	= std::string::size_type&
+//		end		= std::string::size_type&
 //
 // Return Value:
 //		int
 //
 //=============================================================================
-int ExpressionTree::GetTermPower(const std::string &s, unsigned int &start, unsigned int &end)
+int ExpressionTree::GetTermPower(const std::string &s,
+	std::string::size_type &start, std::string::size_type &end)
 {
 	std::string::size_type power;
 	if (s[0] == 's' || s[0] == 'z')

@@ -45,7 +45,7 @@ public:
 
 	void SetInitialGuess(const PointVec& initialGuess) { guess = initialGuess; }
 
-	virtual Eigen::VectorXd Optimize() const;
+	Eigen::VectorXd Optimize() const override;
 
 	inline unsigned int GetIterationCount() const { return iterationCount; }
 
@@ -205,43 +205,43 @@ Eigen::VectorXd NelderMead<paramCount>::Optimize() const
 		// Compute reflection of the worst point and its corresponding function value
 		centroid = AverageColumns(simplex.leftCols(simplex.rows()));
 
-		if (!StableEvaluate(centroid, simplex.rightCols<1>(), reflectionFactor, reflection, reflectionValue))
+		if (!StableEvaluate(centroid, simplex.template rightCols<1>(), reflectionFactor, reflection, reflectionValue))
 			return centroid;// TODO:  Warn user?
 
 		if (reflectionValue < functionValue(0))// Reflected point is a new minimum
 		{
 			// Compute the expansion of the worst point and its corresponding function value
-			if (!StableEvaluate(centroid, simplex.rightCols<1>(), expansionSacle, expansion, expansionValue))
+			if (!StableEvaluate(centroid, simplex.template rightCols<1>(), expansionSacle, expansion, expansionValue))
 				return centroid;// TODO:  Warn user?
 
 			if (expansionValue < reflectionValue)
 			{
-				simplex.rightCols<1>() = expansion;
-				functionValue.tail<1>()(0) = expansionValue;
+				simplex.template rightCols<1>() = expansion;
+				functionValue.template tail<1>()(0) = expansionValue;
 			}
 			else
 			{
-				simplex.rightCols<1>() = reflection;
-				functionValue.tail<1>()(0) = reflectionValue;
+				simplex.template rightCols<1>() = reflection;
+				functionValue.template tail<1>()(0) = reflectionValue;
 			}
 		}
-		else if (reflectionValue < functionValue.tail<2>()(0))// Reflected point is better than the 2nd-to-worst point
+		else if (reflectionValue < functionValue.template tail<2>()(0))// Reflected point is better than the 2nd-to-worst point
 		{
-			simplex.rightCols<1>() = reflection;
-			functionValue.tail<1>()(0) = reflectionValue;
+			simplex.template rightCols<1>() = reflection;
+			functionValue.template tail<1>()(0) = reflectionValue;
 		}
 		else// Reflected point is no better than any other point we've tested
 		{
-			if (reflectionValue < functionValue.tail<1>()(0))// Reflected point is not the worst
+			if (reflectionValue < functionValue.template tail<1>()(0))// Reflected point is not the worst
 			{
 				// Perform an outside contraction
-				if (!StableEvaluate(centroid, simplex.rightCols<1>(), outsideContractionScale, contraction, contractionValue))
+				if (!StableEvaluate(centroid, simplex.template rightCols<1>(), outsideContractionScale, contraction, contractionValue))
 					return centroid;// TODO:  Warn user?
 
 				if (contractionValue <= reflectionValue)
 				{
-					simplex.rightCols<1>() = contraction;
-					functionValue.tail<1>()(0) = contractionValue;
+					simplex.template rightCols<1>() = contraction;
+					functionValue.template tail<1>()(0) = contractionValue;
 				}
 				else
 					Shrink(simplex, functionValue);
@@ -249,13 +249,13 @@ Eigen::VectorXd NelderMead<paramCount>::Optimize() const
 			else
 			{
 				// Perform an inside contraction
-				if (!StableEvaluate(centroid, simplex.rightCols<1>(), -contractionFactor, contraction, contractionValue))
+				if (!StableEvaluate(centroid, simplex.template rightCols<1>(), -contractionFactor, contraction, contractionValue))
 					return centroid;// TODO:  Warn user?
 
-				if (contractionValue < functionValue.tail<1>()(0))
+				if (contractionValue < functionValue.template tail<1>()(0))
 				{
-					simplex.rightCols<1>() = contraction;
-					functionValue.tail<1>()(0) = contractionValue;
+					simplex.template rightCols<1>() = contraction;
+					functionValue.template tail<1>()(0) = contractionValue;
 				}
 				else
 					Shrink(simplex, functionValue);
@@ -268,7 +268,7 @@ Eigen::VectorXd NelderMead<paramCount>::Optimize() const
 
 	iterationCount = i;
 
-	return simplex.leftCols<1>();
+	return simplex.template leftCols<1>();
 }
 
 //==========================================================================

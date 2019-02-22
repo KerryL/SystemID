@@ -64,7 +64,7 @@ private:
 	static bool NextIsS(const std::string &s, unsigned int *stop = nullptr);
 
 	static unsigned int FindEndOfNextTerm(const std::string &s, const unsigned int &start);
-	static int GetTermPower(const std::string &s, unsigned int &start, unsigned int &end);
+	static int GetTermPower(const std::string &s, std::string::size_type &start, std::string::size_type &end);
 
 	bool IsLeftAssociative(const char &c) const;
 	bool OperatorShift(const std::string &stackString, const std::string &newString) const;
