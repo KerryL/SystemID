@@ -137,7 +137,7 @@ void PrintUsage(const std::string& appName)
 	std::cout
 		<< "Usage:  " << appName << " [--rollover <rolloverPoint>] [--order <order>]\n"
 		<< "            [--time-factor <factor>] [--inCol <index> --rspCol <index>]\n"
-		<< "            [--bwGuess <bandwidth>] <first input file> ...\n\n"
+		<< "            [--bwGuess <bandwidth>] [--zetaGuess <damping ratio>] <first input file> ...\n\n"
 
 		<< "    Input files must be formatted into three columns separated by ',':\n"
 		<< "        Time, Input, Response\n"
@@ -157,9 +157,9 @@ void PrintUsage(const std::string& appName)
 		<< "    The solver requires an initial guess for the parameters.  Convergence is\n"
 		<< "    sometimes sensitive to the choice of the initial guess.  If you run into\n"
 		<< "    convergence issues, you can suggest a reasonable starting point with the\n"
-		<< "    bwGuess argument.  Units for bwGuess are Hertz.  The damping ratio for\n"
-		<< "    the initial guess is always zero.  If omitted, the initial bandwidth is\n"
-		<< "    about 10 Hz.  Does not apply to user-specified models.\n\n"
+		<< "    bwGuess and zetaGuess arguments.  Units for bwGuess are Hertz.  If omitted,\n"
+		<< "    the damping ratio for the initial guess is always one.  If omitted, the\n"
+		<< "    initial bandwidth is about 10 Hz.  Does not apply to user-specified models.\n\n"
 
 		<< "    The solver can be used to adjust parameters for user-specified models.  To\n"
 		<< "    specify a model, use the --model_num and --model_den arguments to give the\n"
@@ -268,6 +268,24 @@ bool ProcessBandwidthArgument(const std::string& arg, double& bandwidth)
 	}
 
 	bandwidth *= 2.0 * M_PI;
+
+	return true;
+}
+
+bool ProcessDampingRatioArgument(const std::string& arg, double& zeta)
+{
+	std::istringstream ss(arg);
+	if ((ss >> zeta).fail())
+	{
+		std::cerr << "Invalid damping ratio specification:  '" << arg << "'\n";
+		return false;
+	}
+
+	if (zeta <= 0.0)
+	{
+		std::cerr << "Damping ratio must be strictly positive\n";
+		return false;
+	}
 
 	return true;
 }
@@ -405,6 +423,7 @@ struct Configuration
 
 	double timeFactor = 1.0;// [sec/input units]
 	double bandwidthGuess = 30.0;// [rad/sec]
+	double dampingRatioGuess = 1.0;// [-]
 };
 
 bool ProcessArguments(const std::vector<std::string>& args, Configuration& configuration)
@@ -453,6 +472,12 @@ bool ProcessArguments(const std::vector<std::string>& args, Configuration& confi
 		else if (args[argIndex].compare("--bwGuess") == 0)
 		{
 			if (!ProcessBandwidthArgument(args[argIndex + 1], configuration.bandwidthGuess))
+				return false;
+			++argIndex;
+		}
+		else if (args[argIndex].compare("--zetaGuess") == 0)
+		{
+			if (!ProcessDampingRatioArgument(args[argIndex + 1], configuration.dampingRatioGuess))
 				return false;
 			++argIndex;
 		}
@@ -541,7 +566,7 @@ int main(int argc, char *argv[])
 	std::cout << "Found " << recordCount << " records in " << configuration.inputFileNames.size() << " files" << std::endl;
 
 	const unsigned int iterationLimit(100000);
-	ModelFitter fitter(iterationLimit, configuration.rolloverPoint, configuration.bandwidthGuess);
+	ModelFitter fitter(iterationLimit, configuration.rolloverPoint, configuration.bandwidthGuess, configuration.dampingRatioGuess);
 	if (configuration.rolloverPoint > 0.0)
 	{
 		std::cout << "Unwinding data at " << configuration.rolloverPoint << std::endl;

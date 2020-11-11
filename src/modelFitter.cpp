@@ -38,7 +38,7 @@ bool ModelFitter::DetermineParameters(const std::vector<std::vector<Slice>>& dat
 	ResponseModeller modeller(data, sampleTime, rolloverPoint, ResponseModeller::ModelType::SecondOrder);
 	auto objectiveFunction = std::bind(&ResponseModeller::ComputeModelError, &modeller, std::placeholders::_1);
 	NelderMead<2> optimization(objectiveFunction, iterationLimit);
-	Eigen::Vector2d initialGuess(bwGuess, 1.0);
+	Eigen::Vector2d initialGuess(bwGuess, zetaGuess);
 	optimization.SetInitialGuess(initialGuess);
 
 	Eigen::VectorXd parameters(optimization.Optimize());
