@@ -93,16 +93,16 @@ private:
 
 	struct DynamicResize
 	{
-		static void Resize(PointVec& v, const int& trueParamCount);
-		static void ResizeValue(ValueVec& v, const int& trueParamCount);
-		static void Resize(SimplexMat& m, const int& trueParamCount);
+		static void Resize(PointVec& v, int& trueParamCount);
+		static void ResizeValue(ValueVec& v, int& trueParamCount);
+		static void Resize(SimplexMat& m, int& trueParamCount);
 	};
 
 	struct FixedResize
 	{
-		static void Resize(PointVec& /*v*/, const int& /*trueParamCount*/) {}
-		static void ResizeValue(ValueVec& /*v*/, const int& /*trueParamCount*/) {}
-		static void Resize(SimplexMat& /*m*/, const int& /*trueParamCount*/) {}
+		static void Resize(PointVec& /*v*/, int& /*trueParamCount*/) {}
+		static void ResizeValue(ValueVec& /*v*/, int& /*trueParamCount*/) {}
+		static void Resize(SimplexMat& /*m*/, int& /*trueParamCount*/) {}
 	};
 
 	typedef typename std::conditional<paramCount == Eigen::Dynamic,
@@ -335,8 +335,7 @@ void NelderMead<paramCount>::Initialize(SimplexMat& simplex, ValueVec& functionV
 	simplex.col(0) = guess;
 	functionValue(0) = objectiveFunction(guess);
 
-	int i;
-	for (i = 1; i < simplex.cols(); i++)
+	for (size_t i = 1; i < simplex.cols(); i++)
 	{
 		simplex.col(i) = guess;
 		if (fabs(simplex(i - 1, i)) < nearlyZero)
@@ -379,8 +378,7 @@ void NelderMead<paramCount>::SortByFunctionValue(SimplexMat& simplex, ValueVec& 
 	Utilities::Unzip<double, int>(valueZip, nullptr, &order);
 
 	PermutationMat p(functionValue.rows());
-	int i;
-	for (i = 0; i < p.size(); i++)
+	for (size_t i = 0; i < p.size(); i++)
 		p.indices()(i) = order[i];
 
 	simplex *= p;
@@ -409,8 +407,7 @@ bool NelderMead<paramCount>::IsConverged(const SimplexMat& simplex,
 	const ValueVec& functionValue) const
 {
 	double maxDeltaFunction(0.0), maxDeltaStep(0.0);
-	int i;
-	for (i = 1; i < functionValue.size(); i++)
+	for (size_t i = 1; i < functionValue.size(); i++)
 	{
 		maxDeltaFunction = std::max(maxDeltaFunction,
 			fabs(functionValue(i) - functionValue(0)));
@@ -443,8 +440,7 @@ template <int paramCount>
 typename NelderMead<paramCount>::PointVec NelderMead<paramCount>::AverageColumns(const NbyNMat& m)
 {
 	PointVec sum(m.col(0));
-	int i;
-	for (i = 1; i < m.cols(); i++)
+	for (size_t i = 1; i < m.cols(); i++)
 		sum += m.col(i);
 
 	return sum / m.cols();
@@ -472,8 +468,7 @@ typename NelderMead<paramCount>::PointVec NelderMead<paramCount>::AverageColumns
 template <int paramCount>
 void NelderMead<paramCount>::Shrink(SimplexMat& simplex, ValueVec& functionValue) const
 {
-	int i;
-	for (i = 1; i < simplex.cols(); i++)
+	for (size_t i = 1; i < simplex.cols(); i++)
 	{
 		simplex.col(i) = simplex.col(0) + shrinkFactor * (simplex.col(i) - simplex.col(0));
 		functionValue(i) = objectiveFunction(simplex.col(i));
@@ -488,7 +483,7 @@ void NelderMead<paramCount>::Shrink(SimplexMat& simplex, ValueVec& functionValue
 //
 // Input Arguments:
 //		v				= PointVec&
-//		trueParamCount	= const int&
+//		trueParamCount	= int&
 //
 // Output Arguments:
 //		None
@@ -499,7 +494,7 @@ void NelderMead<paramCount>::Shrink(SimplexMat& simplex, ValueVec& functionValue
 //==========================================================================
 template <int paramCount>
 void NelderMead<paramCount>::DynamicResize::Resize(PointVec& v,
-	const int& trueParamCount)
+	int& trueParamCount)
 {
 	v.resize(trueParamCount);
 }
@@ -512,7 +507,7 @@ void NelderMead<paramCount>::DynamicResize::Resize(PointVec& v,
 //
 // Input Arguments:
 //		v				= ValueVec&
-//		trueParamCount	= const int&
+//		trueParamCount	= int&
 //
 // Output Arguments:
 //		None
@@ -523,7 +518,7 @@ void NelderMead<paramCount>::DynamicResize::Resize(PointVec& v,
 //==========================================================================
 template <int paramCount>
 void NelderMead<paramCount>::DynamicResize::ResizeValue(ValueVec& v,
-	const int& trueParamCount)
+	int& trueParamCount)
 {
 	v.resize(trueParamCount + 1);
 }
@@ -536,7 +531,7 @@ void NelderMead<paramCount>::DynamicResize::ResizeValue(ValueVec& v,
 //
 // Input Arguments:
 //		m				= SimplexMat&
-//		trueParamCount	= const int&
+//		trueParamCount	= int&
 //
 // Output Arguments:
 //		None
@@ -547,7 +542,7 @@ void NelderMead<paramCount>::DynamicResize::ResizeValue(ValueVec& v,
 //==========================================================================
 template <int paramCount>
 void NelderMead<paramCount>::DynamicResize::Resize(
-	SimplexMat& m, const int& trueParamCount)
+	SimplexMat& m, int& trueParamCount)
 {
 	m.resize(trueParamCount, trueParamCount + 1);
 }

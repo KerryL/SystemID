@@ -63,7 +63,7 @@ private:
 	static bool NextIsOperator(const std::string &s, unsigned int *stop = nullptr);
 	static bool NextIsS(const std::string &s, unsigned int *stop = nullptr);
 
-	static unsigned int FindEndOfNextTerm(const std::string &s, const unsigned int &start);
+	static size_t FindEndOfNextTerm(const std::string &s, const size_t &start);
 	static int GetTermPower(const std::string &s, std::string::size_type &start, std::string::size_type &end);
 
 	bool IsLeftAssociative(const char &c) const;

@@ -1284,7 +1284,7 @@ std::vector<std::string> ExpressionTree::BreakApartTerms(const std::string &s)
 //
 // Input Arguments:
 //		s		= const std::string&
-//		start	= const unsigned int&
+//		start	= const size_t&
 //
 // Output Arguments:
 //		None
@@ -1293,7 +1293,7 @@ std::vector<std::string> ExpressionTree::BreakApartTerms(const std::string &s)
 //		unsigned int
 //
 //=============================================================================
-unsigned int ExpressionTree::FindEndOfNextTerm(const std::string &s, const unsigned int &start)
+size_t ExpressionTree::FindEndOfNextTerm(const std::string &s, const size_t &start)
 {
 	std::string::size_type end, plusEnd, minusEnd;
 

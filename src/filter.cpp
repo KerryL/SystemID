@@ -91,7 +91,7 @@ Filter::Filter(const double &sampleRate, const std::vector<double> &numerator,
 void Filter::GenerateCoefficients(const std::vector<double> &numerator,
 	const std::vector<double> &denominator)
 {
-	const unsigned int highestPower(
+	const size_t highestPower(
 		std::max(numerator.size(), denominator.size()) - 1);
 	std::string numString = AssembleZExpression(numerator, highestPower);
 	std::string denString = AssembleZExpression(denominator, highestPower);
@@ -128,14 +128,14 @@ void Filter::GenerateCoefficients(const std::vector<double> &numerator,
 //=============================================================================
 std::string Filter::AssembleZExpression(
 	const std::vector<double>& coefficients,
-	const unsigned int &highestPower) const
+	const size_t &highestPower) const
 {
 	std::ostringstream ss;
 	ss << "(" << std::fixed << 1.0 / sampleRate << "*(1+z^-1))";
 	std::string posBilinTerm(ss.str()), negBilinTerm("(2*(1-z^-1))");
 	std::string result;
 
-	unsigned int i;
+	size_t i;
 	for (i = 0; i < coefficients.size(); ++i)
 	{
 		if (IDMath::IsZero(coefficients[i]))
@@ -249,7 +249,7 @@ double Filter::Apply(const double &u0)
 //=============================================================================
 void Filter::ShiftArray(std::vector<double>& s) const
 {
-	unsigned int i;
+	size_t i;
 	for (i = s.size() - 1; i > 0; --i)
 		s[i] = s[i - 1];
 }
@@ -261,8 +261,8 @@ void Filter::ShiftArray(std::vector<double>& s) const
 // Description:		Allocates the coefficient and input/output storage arrays.
 //
 // Input Arguments:
-//		_inSize		= const unsigned int&
-//		_outSize	= const unsigned int&
+//		_inSize		= const size_t&
+//		_outSize	= const size_t&
 //
 // Output Arguments:
 //		None
@@ -271,8 +271,8 @@ void Filter::ShiftArray(std::vector<double>& s) const
 //		None
 //
 //=============================================================================
-void Filter::ResizeArrays(const unsigned int &inSize,
-	const unsigned int &outSize)
+void Filter::ResizeArrays(const size_t &inSize,
+	const size_t &outSize)
 {
 	mA.resize(inSize);
 	mB.resize(outSize - 1);
@@ -441,7 +441,7 @@ double Filter::ComputeSteadyStateGain(const std::string &num,
 	std::vector<double> denominatorCoefficients = CoefficientsFromString(den);
 
 	unsigned int numEndZeros(0), denEndZeros(0);
-	int i;
+	size_t i;
 	for (i = numeratorCoefficients.size() - 1; i >= 0; --i)
 	{
 		if (IDMath::IsZero(numeratorCoefficients[i]))

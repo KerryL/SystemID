@@ -6,8 +6,8 @@
 #ifndef ID_MATH_H_
 #define ID_MATH_H_
 
-// Eigen headers
-#include <Eigen/Eigen>
+// Local headers
+#include "eigenNoWarnings.h"
 
 // Standard C++ headers
 #include <limits>// For QNaN

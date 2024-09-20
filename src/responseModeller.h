@@ -8,9 +8,7 @@
 
 // Local headers
 #include "slice.h"
-
-// Eigen headers
-#include <Eigen/Eigen>
+#include "eigenNoWarnings.h"
 
 // Standard C++ headers
 #include <vector>

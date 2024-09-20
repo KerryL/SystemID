@@ -68,5 +68,8 @@
     <ClInclude Include="..\src\idMath.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\eigenNoWarnings.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

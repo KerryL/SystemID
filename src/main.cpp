@@ -504,7 +504,7 @@ bool ProcessArguments(const std::vector<std::string>& args, Configuration& confi
 std::string AssembleSExpression(const std::vector<double> coefficients)
 {
 	std::ostringstream ss;
-	for (unsigned int c = 0; c < coefficients.size(); ++c)
+	for (size_t c = 0; c < coefficients.size(); ++c)
 	{
 		if (!ss.str().empty())
 		{
@@ -516,7 +516,7 @@ std::string AssembleSExpression(const std::vector<double> coefficients)
 
 		if (fabs(coefficients[c]) != 1.0)
 			ss << fabs(coefficients[c]);
-		const unsigned int power(coefficients.size() - c - 1);
+		const size_t power(coefficients.size() - c - 1);
 		if (power == 1)
 			ss << "s";
 		else if (power > 1)
@@ -556,9 +556,9 @@ int main(int argc, char *argv[])
 	if (!ReadInputData(configuration.inputFileNames, data, configuration.commandColumn, configuration.responseColumn, configuration.timeFactor))
 		return 1;
 
-	const unsigned int recordCount([&data]()
+	const size_t recordCount([&data]()
 	{
-		unsigned int total(0);
+		size_t total(0);
 		for (const auto& d : data)
 			total += d.size();
 		return total;

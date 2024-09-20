@@ -90,13 +90,13 @@ private:
 
 	const double sampleRate;// [Hz]
 
-	void ResizeArrays(const unsigned int &inSize, const unsigned int &outSize);
+	void ResizeArrays(const size_t &inSize, const size_t &outSize);
 	void ShiftArray(std::vector<double>& s) const;
 
 	void GenerateCoefficients(const std::vector<double> &numerator,
 		const std::vector<double> &denominator);
 	std::string AssembleZExpression(const std::vector<double>& coefficients,
-		const unsigned int &highestPower) const;
+		const size_t &highestPower) const;
 	static std::vector<std::pair<int, double>> CollectLikeTerms(
 		std::vector<std::pair<int, double>> terms);
 	static std::vector<std::pair<int, double>> PadMissingTerms(

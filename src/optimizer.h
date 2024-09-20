@@ -9,8 +9,8 @@
 // Standard C++ headers
 #include <functional>
 
-// Eigen headers
-#include <Eigen/Eigen>
+// Local headers
+#include "eigenNoWarnings.h"
 
 class Optimizer
 {

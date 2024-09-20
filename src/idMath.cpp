@@ -12,6 +12,7 @@
 #include <limits>
 #include <cstdarg>
 #include <sstream>
+#include <cmath>
 
 //=============================================================================
 // Namespace:		IDMath
@@ -203,7 +204,7 @@ unsigned int IDMath::GetPrecision(const double &value,
 	ss << value;
 
 	std::string number(ss.str());
-	unsigned int i;
+	size_t i;
 	for (i = number.size() - 1; i > 0; --i)
 	{
 		if (number[i] == '0')
