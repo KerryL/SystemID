@@ -14,7 +14,8 @@
 // Local headers
 #include "optimizer.h"
 
-template <int paramCount>
+typedef Eigen::EigenBase<Eigen::Matrix2d>::Index EigenIndexType;
+template <EigenIndexType paramCount>
 class NelderMead : public Optimizer
 {
 public:
@@ -93,16 +94,16 @@ private:
 
 	struct DynamicResize
 	{
-		static void Resize(PointVec& v, int& trueParamCount);
-		static void ResizeValue(ValueVec& v, int& trueParamCount);
-		static void Resize(SimplexMat& m, int& trueParamCount);
+		static void Resize(PointVec& v, const EigenIndexType& trueParamCount);
+		static void ResizeValue(ValueVec& v, const EigenIndexType& trueParamCount);
+		static void Resize(SimplexMat& m, const EigenIndexType& trueParamCount);
 	};
 
 	struct FixedResize
 	{
-		static void Resize(PointVec& /*v*/, int& /*trueParamCount*/) {}
-		static void ResizeValue(ValueVec& /*v*/, int& /*trueParamCount*/) {}
-		static void Resize(SimplexMat& /*m*/, int& /*trueParamCount*/) {}
+		static void Resize(PointVec& /*v*/, const EigenIndexType& /*trueParamCount*/) {}
+		static void ResizeValue(ValueVec& /*v*/, const EigenIndexType& /*trueParamCount*/) {}
+		static void Resize(SimplexMat& /*m*/, const EigenIndexType& /*trueParamCount*/) {}
 	};
 
 	typedef typename std::conditional<paramCount == Eigen::Dynamic,
@@ -135,7 +136,7 @@ private:
 //		None
 //
 //==========================================================================
-template <int paramCount>
+template <EigenIndexType paramCount>
 NelderMead<paramCount>::NelderMead(ObjectiveFunction objectiveFunction,
 	const unsigned int& iterationLimit)
 	: Optimizer(objectiveFunction, iterationLimit)
@@ -173,7 +174,7 @@ NelderMead<paramCount>::NelderMead(ObjectiveFunction objectiveFunction,
 //		Eigen::VectorXd
 //
 //==========================================================================
-template <int paramCount>
+template <EigenIndexType paramCount>
 Eigen::VectorXd NelderMead<paramCount>::Optimize() const
 {
 	assert(guess.size() > 0);
@@ -292,7 +293,7 @@ Eigen::VectorXd NelderMead<paramCount>::Optimize() const
 //		bool
 //
 //==========================================================================
-template <int paramCount>
+template <EigenIndexType paramCount>
 bool NelderMead<paramCount>::StableEvaluate(const PointVec& centroid,
 	const PointVec& worst, double factor, PointVec& point, double& value) const
 {
@@ -326,7 +327,7 @@ bool NelderMead<paramCount>::StableEvaluate(const PointVec& centroid,
 //		None
 //
 //==========================================================================
-template <int paramCount>
+template <EigenIndexType paramCount>
 void NelderMead<paramCount>::Initialize(SimplexMat& simplex, ValueVec& functionValue) const
 {
 	ConditionalResize::Resize(simplex, guess.size());
@@ -335,7 +336,7 @@ void NelderMead<paramCount>::Initialize(SimplexMat& simplex, ValueVec& functionV
 	simplex.col(0) = guess;
 	functionValue(0) = objectiveFunction(guess);
 
-	for (size_t i = 1; i < simplex.cols(); i++)
+	for (int i = 1; i < simplex.cols(); i++)
 	{
 		simplex.col(i) = guess;
 		if (fabs(simplex(i - 1, i)) < nearlyZero)
@@ -367,7 +368,7 @@ void NelderMead<paramCount>::Initialize(SimplexMat& simplex, ValueVec& functionV
 //		None
 //
 //==========================================================================
-template <int paramCount>
+template <EigenIndexType paramCount>
 void NelderMead<paramCount>::SortByFunctionValue(SimplexMat& simplex, ValueVec& functionValue)
 {
 	// Determine the required order of the permutation matrix
@@ -378,7 +379,7 @@ void NelderMead<paramCount>::SortByFunctionValue(SimplexMat& simplex, ValueVec& 
 	Utilities::Unzip<double, int>(valueZip, nullptr, &order);
 
 	PermutationMat p(functionValue.rows());
-	for (size_t i = 0; i < p.size(); i++)
+	for (int i = 0; i < p.size(); i++)
 		p.indices()(i) = order[i];
 
 	simplex *= p;
@@ -402,12 +403,12 @@ void NelderMead<paramCount>::SortByFunctionValue(SimplexMat& simplex, ValueVec& 
 //		None
 //
 //==========================================================================
-template <int paramCount>
+template <EigenIndexType paramCount>
 bool NelderMead<paramCount>::IsConverged(const SimplexMat& simplex,
 	const ValueVec& functionValue) const
 {
 	double maxDeltaFunction(0.0), maxDeltaStep(0.0);
-	for (size_t i = 1; i < functionValue.size(); i++)
+	for (EigenIndexType i = 1; i < functionValue.size(); i++)
 	{
 		maxDeltaFunction = std::max(maxDeltaFunction,
 			fabs(functionValue(i) - functionValue(0)));
@@ -436,11 +437,11 @@ bool NelderMead<paramCount>::IsConverged(const SimplexMat& simplex,
 //		Eigen::VectorXd
 //
 //==========================================================================
-template <int paramCount>
+template <EigenIndexType paramCount>
 typename NelderMead<paramCount>::PointVec NelderMead<paramCount>::AverageColumns(const NbyNMat& m)
 {
 	PointVec sum(m.col(0));
-	for (size_t i = 1; i < m.cols(); i++)
+	for (int i = 1; i < m.cols(); i++)
 		sum += m.col(i);
 
 	return sum / m.cols();
@@ -465,10 +466,10 @@ typename NelderMead<paramCount>::PointVec NelderMead<paramCount>::AverageColumns
 //		None
 //
 //==========================================================================
-template <int paramCount>
+template <EigenIndexType paramCount>
 void NelderMead<paramCount>::Shrink(SimplexMat& simplex, ValueVec& functionValue) const
 {
-	for (size_t i = 1; i < simplex.cols(); i++)
+	for (int i = 1; i < simplex.cols(); i++)
 	{
 		simplex.col(i) = simplex.col(0) + shrinkFactor * (simplex.col(i) - simplex.col(0));
 		functionValue(i) = objectiveFunction(simplex.col(i));
@@ -483,7 +484,7 @@ void NelderMead<paramCount>::Shrink(SimplexMat& simplex, ValueVec& functionValue
 //
 // Input Arguments:
 //		v				= PointVec&
-//		trueParamCount	= int&
+//		trueParamCount	= const EigenIndexType&
 //
 // Output Arguments:
 //		None
@@ -492,9 +493,9 @@ void NelderMead<paramCount>::Shrink(SimplexMat& simplex, ValueVec& functionValue
 //		None
 //
 //==========================================================================
-template <int paramCount>
+template <EigenIndexType paramCount>
 void NelderMead<paramCount>::DynamicResize::Resize(PointVec& v,
-	int& trueParamCount)
+	const EigenIndexType& trueParamCount)
 {
 	v.resize(trueParamCount);
 }
@@ -507,7 +508,7 @@ void NelderMead<paramCount>::DynamicResize::Resize(PointVec& v,
 //
 // Input Arguments:
 //		v				= ValueVec&
-//		trueParamCount	= int&
+//		trueParamCount	= const EigenIndexType&
 //
 // Output Arguments:
 //		None
@@ -516,9 +517,9 @@ void NelderMead<paramCount>::DynamicResize::Resize(PointVec& v,
 //		None
 //
 //==========================================================================
-template <int paramCount>
+template <EigenIndexType paramCount>
 void NelderMead<paramCount>::DynamicResize::ResizeValue(ValueVec& v,
-	int& trueParamCount)
+	const EigenIndexType& trueParamCount)
 {
 	v.resize(trueParamCount + 1);
 }
@@ -531,7 +532,7 @@ void NelderMead<paramCount>::DynamicResize::ResizeValue(ValueVec& v,
 //
 // Input Arguments:
 //		m				= SimplexMat&
-//		trueParamCount	= int&
+//		trueParamCount	= const EigenIndexType&
 //
 // Output Arguments:
 //		None
@@ -540,9 +541,9 @@ void NelderMead<paramCount>::DynamicResize::ResizeValue(ValueVec& v,
 //		None
 //
 //==========================================================================
-template <int paramCount>
+template <EigenIndexType paramCount>
 void NelderMead<paramCount>::DynamicResize::Resize(
-	SimplexMat& m, int& trueParamCount)
+	SimplexMat& m, const EigenIndexType& trueParamCount)
 {
 	m.resize(trueParamCount, trueParamCount + 1);
 }
